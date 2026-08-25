@@ -1,0 +1,12 @@
+{
+  "name": "keffi-apartment-suites-system",
+  "version": "1.0.0",
+  "description": "KEFFI APARTMENT SUITES Guest Management & Access Control System",
+  "scripts": {
+    "dev": "npm --prefix keffi-apartment-suites run dev",
+    "dev:all": "start npm --prefix server run dev && npm --prefix keffi-apartment-suites run dev",
+    "server": "npm --prefix server start",
+    "build": "npm --prefix keffi-apartment-suites run build",
+    "start": "npm --prefix server start"
+  }
+}

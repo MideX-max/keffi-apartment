@@ -1,0 +1,63 @@
+// KEFFI APARTMENT SUITES Constants & Brand Helpers
+
+export const BRAND = {
+  name: "KEFFI APARTMENT SUITES",
+  shortName: "KAS",
+  tagline: "Guest Registration & Access Management",
+  address: "14 Keffi Street, Ikoyi / Victoria Island Axis, Lagos, Nigeria",
+  phone: "+234 800 533 3442",
+  email: "reservations@keffiapartments.ng",
+  securityGate: "Main Gatehouse Access Control • Station A",
+  colors: {
+    black: "#111111",
+    gold: "#F3C428",
+    goldHover: "#E5B41B",
+    goldDark: "#B88E12",
+    surface: "#F9FAFB"
+  }
+};
+
+export const DEFAULT_FLATS = [
+  "Azalea C1",
+  "Hibiscus B4",
+  "Jasmine A2",
+  "Orchid D3",
+  "Magnolia E1",
+  "Rosewood A5"
+];
+
+export const ID_TYPES = [
+  "National Identification Number (NIN)",
+  "International Passport",
+  "Driver's License",
+  "Voter's Card (INEC)",
+  "Diplomatic / Official ID"
+];
+
+// Helper to format date to DD/MM/YYYY matching physical pass
+export function formatDatePass(dateStr) {
+  if (!dateStr) return "DD/MM/YYYY";
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return dateStr;
+  }
+}
+
+// Helper to format date with time for badges and logs
+export function formatDateTime(dateStr, timeStr) {
+  const formattedDate = formatDatePass(dateStr);
+  if (!timeStr) return formattedDate;
+  return `${formattedDate} at ${timeStr}`;
+}
+
+export const DEFAULT_MANAGER_SIG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='70' viewBox='0 0 220 70'><path d='M20,48 C35,20 45,15 52,40 C58,60 52,65 65,30 C75,10 85,25 90,45 C95,58 110,35 125,25 C140,15 150,45 165,35 C175,28 185,42 205,30' fill='none' stroke='%23111111' stroke-width='2.2' stroke-linecap='round'/><path d='M30,52 C60,48 110,46 195,50' fill='none' stroke='%23111111' stroke-width='1.8' stroke-linecap='round'/><circle cx='180' cy='32' r='2' fill='%23111111'/></svg>";

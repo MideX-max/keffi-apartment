@@ -1,0 +1,716 @@
+/* ==========================================================================
+   KEFFI APARTMENT SUITES - APPLICATION & GATE PASS STYLES
+   ========================================================================== */
+
+/* Header / Navbar */
+.kas-header {
+  background-color: #ffffff;
+  border-bottom: 2px solid var(--brand-black);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.kas-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80px;
+}
+
+.kas-logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+}
+
+.kas-logo-img {
+  height: 62px;
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+.kas-logo-link:hover .kas-logo-img {
+  transform: scale(1.02);
+}
+
+.kas-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  list-style: none;
+}
+
+.kas-nav-link {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--brand-black);
+  transition: color 0.15s ease;
+  position: relative;
+  padding: 0.5rem 0;
+}
+
+.kas-nav-link:hover, .kas-nav-link.active {
+  color: var(--brand-black);
+}
+
+.kas-nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: var(--brand-gold);
+  border-radius: 2px;
+}
+
+/* Mobile Navigation Toggle */
+.mobile-nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--brand-black);
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+/* Hero Section */
+.hero-section {
+  position: relative;
+  background: linear-gradient(180deg, #FAFAFA 0%, #FFFFFF 100%);
+  padding: 4.5rem 0 4rem;
+  border-bottom: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  background-color: var(--brand-black);
+  color: var(--brand-gold);
+  border-radius: var(--radius-full);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+
+.hero-title {
+  font-family: var(--font-sans);
+  font-size: 3.25rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--brand-black);
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: var(--text-sub);
+  max-width: 680px;
+  line-height: 1.6;
+  margin-bottom: 2.25rem;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Quick Search Box */
+.quick-search-card {
+  background: #ffffff;
+  border: 2px solid var(--brand-black);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+  margin-top: -2rem;
+  position: relative;
+  z-index: 10;
+}
+
+/* Step Wizard Indicator */
+.wizard-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+
+.wizard-stepper::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 30px;
+  right: 30px;
+  height: 2px;
+  background-color: var(--border-light);
+  z-index: 1;
+}
+
+.step-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 2;
+  background: transparent;
+}
+
+.step-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 2px solid var(--border-medium);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  transition: all 0.2s ease;
+}
+
+.step-node.active .step-circle {
+  background-color: var(--brand-black);
+  border-color: var(--brand-gold);
+  color: var(--brand-gold);
+  box-shadow: 0 0 0 4px var(--brand-gold-subtle);
+}
+
+.step-node.completed .step-circle {
+  background-color: var(--brand-gold);
+  border-color: var(--brand-gold-dark);
+  color: var(--brand-black);
+}
+
+.step-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.step-node.active .step-label {
+  color: var(--brand-black);
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   OFFICIAL PHYSICAL GATE PASS STYLED REPLICA
+   ========================================================================== */
+.kas-pass-paper {
+  background-color: #ffffff;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 2.75rem 2.75rem;
+  border: 2px solid #222222;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08), 0 5px 15px rgba(0, 0, 0, 0.04);
+  position: relative;
+  color: #111111;
+  font-family: var(--font-sans);
+  background-image: 
+    radial-gradient(circle at 100% 100%, rgba(243, 196, 40, 0.03) 0%, transparent 60%),
+    radial-gradient(circle at 0% 0%, rgba(243, 196, 40, 0.03) 0%, transparent 60%);
+}
+
+/* Decorative Corner Accents */
+.pass-corner-accent {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.pass-corner-tl {
+  top: 12px;
+  left: 12px;
+}
+
+.pass-corner-tr {
+  top: 12px;
+  right: 12px;
+  transform: scaleX(-1);
+}
+
+.pass-corner-bl {
+  bottom: 12px;
+  left: 12px;
+  transform: scaleY(-1);
+}
+
+.pass-corner-br {
+  bottom: 12px;
+  right: 12px;
+  transform: scale(-1, -1);
+}
+
+/* Pass Header */
+.pass-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.pass-logo-img {
+  height: 90px;
+  width: auto;
+  object-fit: contain;
+  margin: 0 auto 0.5rem;
+  display: block;
+}
+
+.pass-title-main {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  margin-bottom: 0.4rem;
+  line-height: 1.25;
+}
+
+.pass-subtitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #2b2b2b;
+  margin-bottom: 1.75rem;
+}
+
+/* Dotted Line Fields */
+.pass-field-row {
+  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: flex-end;
+  font-size: 1.125rem;
+  line-height: 1.4;
+  position: relative;
+}
+
+.pass-field-label {
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #111111;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.pass-field-dotted-fill {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-left: 0.5rem;
+  border-bottom: 2px dotted #555555;
+  min-height: 32px;
+}
+
+.pass-field-value {
+  position: absolute;
+  bottom: 2px;
+  left: 15%;
+  right: 15%;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Date Range Dual Field */
+.pass-dates-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.pass-date-block {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  font-size: 1.05rem;
+}
+
+.pass-date-dotted-fill {
+  flex: 1;
+  position: relative;
+  margin-left: 0.5rem;
+  border-bottom: 2px dotted #555555;
+  min-height: 28px;
+}
+
+.pass-date-value {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #000000;
+}
+
+/* Signature Rows */
+.pass-signatures-section {
+  margin-top: 2.25rem;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.pass-sig-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pass-sig-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #111111;
+  letter-spacing: 0.03em;
+}
+
+.pass-sig-line-container {
+  position: relative;
+  border-bottom: 2px dotted #555555;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pass-sig-image {
+  max-height: 65px;
+  max-width: 240px;
+  object-fit: contain;
+  filter: contrast(1.15);
+}
+
+/* Bottom Official Notice */
+.pass-notice-box {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1.5px solid #e5e7eb;
+  font-size: 0.925rem;
+  line-height: 1.5;
+  color: #222222;
+}
+
+.pass-notice-nb {
+  font-weight: 800;
+  color: #000000;
+}
+
+.pass-notice-italic {
+  font-style: italic;
+  margin-top: 0.35rem;
+  font-weight: 500;
+}
+
+/* Watermark if Expired */
+.pass-expired-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-32deg);
+  font-size: 5.5rem;
+  font-weight: 900;
+  color: rgba(220, 38, 38, 0.15);
+  border: 8px solid rgba(220, 38, 38, 0.2);
+  padding: 0.75rem 3rem;
+  border-radius: 12px;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+  user-select: none;
+  z-index: 10;
+}
+
+/* Pass Security Footer */
+.pass-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #cbd5e1;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   FACILITY MANAGER DASHBOARD
+   ========================================================================== */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-surface);
+}
+
+.admin-sidebar {
+  width: 280px;
+  background-color: var(--brand-black);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-right: 2px solid #27272a;
+}
+
+.admin-sidebar-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid #27272a;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-nav {
+  padding: 1.25rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  transition: all 0.15s ease;
+}
+
+.admin-nav-item:hover {
+  background-color: #27272a;
+  color: #ffffff;
+}
+
+.admin-nav-item.active {
+  background-color: var(--brand-gold);
+  color: var(--brand-black);
+  font-weight: 700;
+}
+
+.admin-sidebar-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #27272a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.admin-topbar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-light);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-main-view {
+  padding: 2rem;
+  flex: 1;
+}
+
+/* Stat Grid */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-medium);
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--brand-black);
+  line-height: 1.1;
+  margin-top: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Data Table */
+.kas-table-container {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.kas-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.kas-table th {
+  background-color: var(--bg-surface);
+  padding: 0.875rem 1.25rem;
+  font-weight: 700;
+  color: var(--text-sub);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.kas-table td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.kas-table tr:hover td {
+  background-color: #fbfbfb;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.modal-card {
+  background: #ffffff;
+  border-radius: var(--radius-xl);
+  max-width: 680px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.modal-header {
+  padding: 1.5rem 1.75rem;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-body {
+  padding: 1.75rem;
+}
+
+.modal-footer {
+  padding: 1.25rem 1.75rem;
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background-color: var(--bg-surface);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 900px) {
+  .kas-nav-links {
+    display: none;
+  }
+  .mobile-nav-toggle {
+    display: block;
+  }
+  .hero-title {
+    font-size: 2.25rem;
+  }
+  .admin-sidebar {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    bottom: 0;
+    z-index: 90;
+    transition: left 0.25s ease;
+  }
+  .admin-sidebar.open {
+    left: 0;
+  }
+  .kas-pass-paper {
+    padding: 2rem 1.5rem 1.75rem;
+  }
+  .pass-title-main {
+    font-size: 1.2rem;
+  }
+  .pass-field-value {
+    font-size: 1.05rem;
+  }
+  .pass-dates-row {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+}
