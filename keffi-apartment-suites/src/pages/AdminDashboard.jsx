@@ -124,6 +124,14 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Sidebar Overlay for Mobile */}
+      {mobileSidebarOpen && (
+        <div
+          className="admin-sidebar-overlay"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* 1. Sidebar */}
       <aside className={`admin-sidebar ${mobileSidebarOpen ? 'open' : ''}`}>
         

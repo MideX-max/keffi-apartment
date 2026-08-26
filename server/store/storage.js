@@ -777,34 +777,3 @@ class StorageEngine {
     return { message: 'All data has been reset successfully' };
   }
 }
-
-export function redactReservationForPublic(reservation) {
-  if (!reservation) return null;
-  return {
-    id: reservation.id,
-    passId: reservation.passId,
-    guestName: reservation.guestName,
-    flat: reservation.flat,
-    checkInDate: reservation.checkInDate,
-    checkOutDate: reservation.checkOutDate,
-    checkInTime: reservation.checkInTime,
-    checkOutTime: reservation.checkOutTime,
-    status: reservation.status,
-    managerSignatureUrl: reservation.managerSignatureUrl,
-    signatureUrl: reservation.status === 'Pending Review' ? '' : reservation.signatureUrl,
-    createdAt: reservation.createdAt
-  };
-}
-
-class StorageEngine {
-  constructor(dbPool) {
-    this.pool = dbPool;
-  }
-
-  async init() {
-    await this.pool.query('SELECT 1');
-    await this.migrate();
-    await this.seedFlats();
-    await this.seedAdmin();
-  }
-}
