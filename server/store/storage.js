@@ -239,7 +239,8 @@ class StorageEngine {
         `
           INSERT INTO flats (id, name, block, floor, type, status, current_guest, current_pass_id, description)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          ON CONFLICT (name) DO UPDATE SET
+          ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
             block = EXCLUDED.block,
             floor = EXCLUDED.floor,
             type = EXCLUDED.type,
@@ -777,3 +778,5 @@ class StorageEngine {
     return { message: 'All data has been reset successfully' };
   }
 }
+
+export const storage = new StorageEngine(pool);
