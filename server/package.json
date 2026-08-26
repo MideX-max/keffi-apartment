@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Backend API for KEFFI APARTMENT SUITES Guest Management System",
   "main": "index.js",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "type": "module",
   "scripts": {
     "start": "node index.js",
@@ -14,7 +17,7 @@
     "dotenv": "^17.3.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^1.4.5-lts.1",
+    "multer": "^2.0.2",
     "pg": "^8.23.0"
   }
 }
