@@ -6,7 +6,7 @@
     "dev": "npm --prefix keffi-apartment-suites run dev",
     "dev:all": "start npm --prefix server run dev && npm --prefix keffi-apartment-suites run dev",
     "server": "npm --prefix server start",
-    "build": "npm --prefix keffi-apartment-suites run build",
+    "build": "npm install && npm install --prefix keffi-apartment-suites && npm install --prefix server && npm --prefix keffi-apartment-suites run build",
     "start": "npm --prefix server start"
   }
 }
