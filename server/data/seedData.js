@@ -4,8 +4,8 @@ export const DEFAULT_MANAGER_SIGNATURE = "data:image/svg+xml;utf8,<svg xmlns='ht
 export const INITIAL_FLATS = [
   {
     id: "flat-1",
-    name: "Azalea C1",
-    block: "Block C",
+    name: "Azalea",
+    block: "Block A",
     floor: "1st Floor",
     type: "2 Bedroom Executive Suite",
     status: "available",
@@ -15,9 +15,9 @@ export const INITIAL_FLATS = [
   },
   {
     id: "flat-2",
-    name: "Hibiscus B4",
+    name: "Beaumont",
     block: "Block B",
-    floor: "4th Floor",
+    floor: "2nd Floor",
     type: "3 Bedroom Penthouse Suite",
     status: "available",
     currentGuest: null,
@@ -26,9 +26,9 @@ export const INITIAL_FLATS = [
   },
   {
     id: "flat-3",
-    name: "Jasmine A2",
-    block: "Block A",
-    floor: "2nd Floor",
+    name: "Charleston",
+    block: "Block C",
+    floor: "3rd Floor",
     type: "1 Bedroom Studio Suite",
     status: "available",
     currentGuest: null,
@@ -37,50 +37,61 @@ export const INITIAL_FLATS = [
   },
   {
     id: "flat-4",
-    name: "Orchid D3",
+    name: "Darwin",
     block: "Block D",
-    floor: "3rd Floor",
+    floor: "4th Floor",
     type: "2 Bedroom Premium Flat",
     status: "available",
     currentGuest: null,
     currentPassId: null,
     description: "Contemporary styling with private balcony and automated access."
-  },
-  {
-    id: "flat-5",
-    name: "Magnolia E1",
-    block: "Block E",
-    floor: "Ground Floor",
-    type: "3 Bedroom Deluxe Suite",
-    status: "available",
-    currentGuest: null,
-    currentPassId: null,
-    description: "Ground floor garden access suite with wheelchair accessible layout."
-  },
-  {
-    id: "flat-6",
-    name: "Rosewood A5",
-    block: "Block A",
-    floor: "5th Floor",
-    type: "2 Bedroom City View",
-    status: "available",
-    currentGuest: null,
-    currentPassId: null,
-    description: "Quiet top-floor apartment with enhanced privacy and soundproofing."
   }
 ];
 
-export const INITIAL_ADMIN = {
-  id: "admin-01",
-  name: "Engr. David Okon",
-  role: "Chief Facility Manager",
-  email: "manager@keffiapartments.ng",
-  phone: "+234 803 000 1122",
-  estateName: "KEFFI APARTMENT SUITES",
-  estateAddress: "14 Keffi Street, Ikoyi / Victoria Island Axis, Lagos, Nigeria",
-  gateContact: "+234 800 533 3442 (Main Gatehouse)",
-  defaultSignature: DEFAULT_MANAGER_SIGNATURE,
-  autoApprovalEnabled: true,
-  strictIdCheck: true,
-  notificationEmail: "security@keffiapartments.ng"
-};
+export const INITIAL_MANAGERS = [
+  {
+    id: "manager-001",
+    name: "KSA Concierge Admin",
+    role: "Apartment Manager",
+    email: "ksaconciergeservices@gmail.com",
+    password: "keffiapartmentadmin1",
+    phone: "+234 704 362 3113",
+    estateName: "KSA Concierge Services",
+    estateAddress: "20B Keffi Street, off Awolowo Road, Ikoyi, Lagos",
+    gateContact: "+234 704 362 3113",
+    defaultSignature: DEFAULT_MANAGER_SIGNATURE,
+    autoApprovalEnabled: true,
+    strictIdCheck: true,
+    notificationEmail: "ksaconciergeservices@gmail.com"
+  },
+  {
+    id: "manager-002",
+    name: "KSA Administrator",
+    role: "Apartment Manager",
+    email: "admin@keffi.com",
+    password: "admin234",
+    phone: "+234 704 362 3113",
+    estateName: "KSA Concierge Services",
+    estateAddress: "20B Keffi Street, off Awolowo Road, Ikoyi, Lagos",
+    gateContact: "+234 704 362 3113",
+    defaultSignature: DEFAULT_MANAGER_SIGNATURE,
+    autoApprovalEnabled: true,
+    strictIdCheck: true,
+    notificationEmail: "admin@keffi.com"
+  },
+  {
+    id: "manager-003",
+    name: "KSA Manager",
+    role: "Apartment Manager",
+    email: "adminkef@keffi.com",
+    password: "admin369",
+    phone: "+234 704 362 3113",
+    estateName: "KSA Concierge Services",
+    estateAddress: "20B Keffi Street, off Awolowo Road, Ikoyi, Lagos",
+    gateContact: "+234 704 362 3113",
+    defaultSignature: DEFAULT_MANAGER_SIGNATURE,
+    autoApprovalEnabled: true,
+    strictIdCheck: true,
+    notificationEmail: "adminkef@keffi.com"
+  }
+];

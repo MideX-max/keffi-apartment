@@ -2,7 +2,7 @@ import 'dotenv/config';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import pg from 'pg';
-import { DEFAULT_MANAGER_SIGNATURE, INITIAL_ADMIN, INITIAL_FLATS } from '../data/seedData.js';
+import { DEFAULT_MANAGER_SIGNATURE, INITIAL_MANAGERS, INITIAL_FLATS } from '../data/seedData.js';
 
 const { Pool } = pg;
 
@@ -11,7 +11,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 if (!DATABASE_URL) {
   throw new Error(
-    'DATABASE_URL is required. Example: postgresql://user:password@localhost:5432/kas'
+    'postgresql://postgres.eruvbugvshnfbpyjsnow:keffiapartmen@aws-0-eu-west-2.pooler.supabase.com:6543/postgres'
   );
 }
 
@@ -227,13 +227,23 @@ class StorageEngine {
     `);
   }
 
+  async dropAllTables() {
+    await this.pool.query('DROP TABLE IF EXISTS reservations CASCADE');
+    await this.pool.query('DROP TABLE IF EXISTS flats CASCADE');
+    await this.pool.query('DROP TABLE IF EXISTS admins CASCADE');
+  }
+
   async seedFlats() {
     for (const flat of INITIAL_FLATS) {
       await this.pool.query(
         `
           INSERT INTO flats (id, name, block, floor, type, status, current_guest, current_pass_id, description)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          ON CONFLICT (name) DO NOTHING
+          ON CONFLICT (name) DO UPDATE SET
+            block = EXCLUDED.block,
+            floor = EXCLUDED.floor,
+            type = EXCLUDED.type,
+            description = EXCLUDED.description
         `,
         [
           flat.id,
@@ -254,47 +264,43 @@ class StorageEngine {
     const { rows } = await this.pool.query('SELECT COUNT(*)::int AS count FROM admins');
     if (rows[0].count > 0) return;
 
-    if (!process.env.ADMIN_BOOTSTRAP_PASSWORD && isProduction) {
-      throw new Error('ADMIN_BOOTSTRAP_PASSWORD is required when seeding the first production admin.');
+    // Seed multiple managers with their specific passwords
+    for (const manager of INITIAL_MANAGERS) {
+      const passwordHash = await bcrypt.hash(manager.password, 12);
+      
+      await this.pool.query(
+        `
+          INSERT INTO admins (
+            id, name, role, email, password_hash, phone, estate_name, estate_address,
+            gate_contact, default_signature, auto_approval_enabled, strict_id_check, notification_email
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          ON CONFLICT (email) DO NOTHING
+        `,
+        [
+          manager.id,
+          manager.name,
+          manager.role,
+          manager.email,
+          passwordHash,
+          manager.phone,
+          manager.estateName,
+          manager.estateAddress,
+          manager.gateContact,
+          manager.defaultSignature,
+          manager.autoApprovalEnabled,
+          manager.strictIdCheck,
+          manager.notificationEmail
+        ]
+      );
     }
 
-    const generatedPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD
-      ? null
-      : crypto.randomBytes(18).toString('base64url');
-    const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD || generatedPassword;
-    const passwordHash = await bcrypt.hash(bootstrapPassword, 12);
-
-    await this.pool.query(
-      `
-        INSERT INTO admins (
-          id, name, role, email, password_hash, phone, estate_name, estate_address,
-          gate_contact, default_signature, auto_approval_enabled, strict_id_check, notification_email
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      `,
-      [
-        INITIAL_ADMIN.id,
-        process.env.ADMIN_BOOTSTRAP_NAME || INITIAL_ADMIN.name,
-        process.env.ADMIN_BOOTSTRAP_ROLE || INITIAL_ADMIN.role,
-        process.env.ADMIN_BOOTSTRAP_EMAIL || INITIAL_ADMIN.email,
-        passwordHash,
-        INITIAL_ADMIN.phone,
-        INITIAL_ADMIN.estateName,
-        INITIAL_ADMIN.estateAddress,
-        INITIAL_ADMIN.gateContact,
-        DEFAULT_MANAGER_SIGNATURE,
-        true,
-        true,
-        INITIAL_ADMIN.notificationEmail
-      ]
-    );
-
-    if (generatedPassword) {
-      console.warn('Created development admin account:');
-      console.warn(`  email: ${process.env.ADMIN_BOOTSTRAP_EMAIL || INITIAL_ADMIN.email}`);
-      console.warn(`  password: ${generatedPassword}`);
-      console.warn('Set ADMIN_BOOTSTRAP_PASSWORD in .env for a stable first admin password.');
+    console.log('Created development manager accounts:');
+    for (const manager of INITIAL_MANAGERS) {
+      console.warn(`  email: ${manager.email}`);
+      console.warn(`  password: ${manager.password}`);
     }
+    console.warn('For production, set individual manager passwords in environment variables.');
   }
 
   computeStatus(reservation) {
@@ -753,10 +759,52 @@ class StorageEngine {
     await this.pool.query('DELETE FROM reservations');
     await this.pool.query('DELETE FROM flats');
     await this.pool.query('DELETE FROM admins');
+    
+    // Try to reset sequences, but ignore if they don't exist
+    try {
+      await this.pool.query('ALTER SEQUENCE flats_id_seq RESTART WITH 1');
+    } catch (e) {
+      // Sequence might not exist, ignore
+    }
+    try {
+      await this.pool.query('ALTER SEQUENCE admins_id_seq RESTART WITH 1');
+    } catch (e) {
+      // Sequence might not exist, ignore
+    }
+    
     await this.seedFlats();
     await this.seedAdmin();
     return { message: 'All data has been reset successfully' };
   }
 }
 
-export const storage = new StorageEngine(pool);
+export function redactReservationForPublic(reservation) {
+  if (!reservation) return null;
+  return {
+    id: reservation.id,
+    passId: reservation.passId,
+    guestName: reservation.guestName,
+    flat: reservation.flat,
+    checkInDate: reservation.checkInDate,
+    checkOutDate: reservation.checkOutDate,
+    checkInTime: reservation.checkInTime,
+    checkOutTime: reservation.checkOutTime,
+    status: reservation.status,
+    managerSignatureUrl: reservation.managerSignatureUrl,
+    signatureUrl: reservation.status === 'Pending Review' ? '' : reservation.signatureUrl,
+    createdAt: reservation.createdAt
+  };
+}
+
+class StorageEngine {
+  constructor(dbPool) {
+    this.pool = dbPool;
+  }
+
+  async init() {
+    await this.pool.query('SELECT 1');
+    await this.migrate();
+    await this.seedFlats();
+    await this.seedAdmin();
+  }
+}

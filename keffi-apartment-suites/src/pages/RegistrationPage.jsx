@@ -29,9 +29,12 @@ export default function RegistrationPage() {
     email: '',
     guestCount: 1,
     purpose: 'Business & Personal Stay',
+    airbnbBooking: false,
+    airbnbScreenshotUrl: '',
+    airbnbScreenshotName: '',
 
     // Step 2: Apartment & Dates
-    flat: 'Azalea C1',
+    flat: 'Azalea',
     checkInDate: new Date().toISOString().slice(0, 10),
     checkOutDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     checkInTime: '14:00',
@@ -43,11 +46,12 @@ export default function RegistrationPage() {
     idDocumentUrl: '',
     idDocumentName: '',
     idDocumentSize: 0,
-    photoUrl: '',
-    photoName: '',
 
     // Step 4: Signature
     signatureUrl: '',
+    signatureUploadUrl: '',
+    signatureUploadName: '',
+    signatureMethod: 'draw', // 'draw' or 'upload'
 
     // Step 5: Declaration
     confirmedAccuracy: false
@@ -93,6 +97,9 @@ export default function RegistrationPage() {
       if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         newErrors.email = 'Please enter a valid email address.';
       }
+      if (formData.airbnbBooking && !formData.airbnbScreenshotUrl) {
+        newErrors.airbnbScreenshotUrl = 'Airbnb booking screenshot is required when booking through Airbnb.';
+      }
     }
 
     if (step === 2) {
@@ -108,14 +115,14 @@ export default function RegistrationPage() {
     }
 
     if (step === 3) {
-      if (!formData.idDocumentUrl && !formData.idNumber) {
-        newErrors.idDocumentUrl = 'Please upload an identification document (or enter ID number).';
+      if (!formData.idDocumentUrl) {
+        newErrors.idDocumentUrl = 'Identification document upload is required.';
       }
     }
 
     if (step === 4) {
-      if (!formData.signatureUrl) {
-        newErrors.signatureUrl = 'Please provide a signature or apply authorized default.';
+      if (!formData.signatureUrl && !formData.signatureUploadUrl) {
+        newErrors.signatureUrl = 'Please provide a signature (draw or upload).';
       }
     }
 
@@ -191,7 +198,7 @@ export default function RegistrationPage() {
         {/* Page Header */}
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
           <span style={{ color: 'var(--brand-gold-dark)', fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: '0.4rem' }}>
-            KEFFI APARTMENT SUITES
+            KSA CONCIERGE SERVICES
           </span>
           <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--brand-black)', letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>
             Guest Registration &amp; Gate Pass Form
@@ -292,7 +299,7 @@ export default function RegistrationPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
                   <div className="form-group">
                     <label className="form-label">
-                      Number of Guests in Party <span className="required">*</span>
+                      Number of Guests in Party (Optional)
                     </label>
                     <select
                       className="form-select"
@@ -317,6 +324,39 @@ export default function RegistrationPage() {
                       onChange={(e) => handleChange('purpose', e.target.value)}
                     />
                   </div>
+                </div>
+
+                {/* Airbnb Booking Check */}
+                <div style={{ marginTop: '1.5rem', padding: '1.25rem', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 'var(--radius-md)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginBottom: '0.75rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.airbnbBooking}
+                      onChange={(e) => handleChange('airbnbBooking', e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--brand-black)' }}
+                    />
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--brand-black)' }}>
+                      Did you book through Airbnb?
+                    </span>
+                  </label>
+                  
+                  {formData.airbnbBooking && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <FileUpload
+                        label="Upload Airbnb Booking Screenshot"
+                        hint="Upload a screenshot of your Airbnb booking confirmation page (compulsory)"
+                        value={formData.airbnbScreenshotUrl}
+                        fileName={formData.airbnbScreenshotName}
+                        onChange={({ url, name }) => {
+                          handleChange('airbnbScreenshotUrl', url);
+                          handleChange('airbnbScreenshotName', name);
+                        }}
+                        required={true}
+                        accept="image/*"
+                      />
+                      {errors.airbnbScreenshotUrl && <span className="form-error" style={{ display: 'block', marginTop: '0.5rem' }}>{errors.airbnbScreenshotUrl}</span>}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -347,7 +387,7 @@ export default function RegistrationPage() {
                     <input
                       type="text"
                       className={`form-input ${errors.flat || flatConflict ? 'error' : ''}`}
-                      placeholder="Enter flat name e.g. Azalea C1, Hibiscus B4, Flat 12B..."
+                      placeholder="Enter flat name e.g. Azalea, Beaumont, Charleston, Darwin..."
                       value={formData.flat}
                       onChange={(e) => handleChange('flat', e.target.value)}
                     />
@@ -356,7 +396,7 @@ export default function RegistrationPage() {
                   {/* Quick Select Preset Flats */}
                   <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                      Quick Select:
+                      Quick Select (Optional):
                     </span>
                     {DEFAULT_FLATS.map(f => (
                       <button
@@ -515,7 +555,7 @@ export default function RegistrationPage() {
                 {/* File Upload for ID Document */}
                 <FileUpload
                   label="Upload Identification Document"
-                  hint="Upload NIN Slip, International Passport bio-data page, or Driver's License"
+                  hint="Upload NIN Slip, International Passport bio-data page, or Driver's License (compulsory)"
                   value={formData.idDocumentUrl}
                   fileName={formData.idDocumentName}
                   onChange={({ url, name, size }) => {
@@ -526,21 +566,6 @@ export default function RegistrationPage() {
                   required={true}
                 />
                 {errors.idDocumentUrl && <span className="form-error" style={{ display: 'block', marginTop: '-1rem', marginBottom: '1rem' }}>{errors.idDocumentUrl}</span>}
-
-                {/* Optional Guest Photograph Upload */}
-                <FileUpload
-                  label="Guest Photograph (Optional)"
-                  hint="Upload passport photograph or clear front-facing portrait"
-                  value={formData.photoUrl}
-                  fileName={formData.photoName}
-                  onChange={({ url, name }) => {
-                    handleChange('photoUrl', url);
-                    handleChange('photoName', name);
-                  }}
-                  required={false}
-                  isPhoto={true}
-                  accept="image/*"
-                />
               </div>
             )}
 
@@ -561,12 +586,60 @@ export default function RegistrationPage() {
                   </div>
                 </div>
 
-                <SignaturePad
-                  value={formData.signatureUrl}
-                  onChange={(sig) => handleChange('signatureUrl', sig)}
-                  label="Flat Owner / Guest Representative Signature"
-                  required={true}
-                />
+                {/* Signature Method Selection */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--brand-black)', marginBottom: '0.5rem', display: 'block' }}>
+                    Signature Method:
+                  </label>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="signatureMethod"
+                        checked={formData.signatureMethod === 'draw'}
+                        onChange={() => handleChange('signatureMethod', 'draw')}
+                        style={{ accentColor: 'var(--brand-black)' }}
+                      />
+                      <span style={{ fontSize: '0.875rem' }}>Draw Signature</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="signatureMethod"
+                        checked={formData.signatureMethod === 'upload'}
+                        onChange={() => handleChange('signatureMethod', 'upload')}
+                        style={{ accentColor: 'var(--brand-black)' }}
+                      />
+                      <span style={{ fontSize: '0.875rem' }}>Upload Signature Image</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Signature Pad or Upload based on selection */}
+                {formData.signatureMethod === 'draw' ? (
+                  <SignaturePad
+                    value={formData.signatureUrl}
+                    onChange={(sig) => handleChange('signatureUrl', sig)}
+                    label="Flat Owner / Guest Representative Signature"
+                    required={true}
+                  />
+                ) : (
+                  <FileUpload
+                    label="Upload Signature Image"
+                    hint="Upload a clear image of your signature"
+                    value={formData.signatureUploadUrl}
+                    fileName={formData.signatureUploadName}
+                    onChange={({ url, name }) => {
+                      handleChange('signatureUploadUrl', url);
+                      handleChange('signatureName', name);
+                      // Also set signatureUrl for compatibility
+                      handleChange('signatureUrl', url);
+                    }}
+                    required={true}
+                    accept="image/*"
+                  />
+                )}
+                
                 {errors.signatureUrl && <span className="form-error" style={{ display: 'block', marginTop: '-1rem', marginBottom: '1rem' }}>{errors.signatureUrl}</span>}
               </div>
             )}
@@ -607,9 +680,11 @@ export default function RegistrationPage() {
                         Email: <strong>{formData.email}</strong>
                       </p>
                     )}
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)' }}>
-                      Party: <strong>{formData.guestCount} Guest(s)</strong>
-                    </p>
+                    {formData.guestCount > 1 && (
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)' }}>
+                        Party: <strong>{formData.guestCount} Guest(s)</strong>
+                      </p>
+                    )}
                   </div>
 
                   {/* Stay Info */}
@@ -674,7 +749,7 @@ export default function RegistrationPage() {
                       style={{ marginTop: '3px', width: '18px', height: '18px', accentColor: 'var(--brand-black)' }}
                     />
                     <span style={{ fontSize: '0.875rem', color: '#92400e', lineHeight: '1.5' }}>
-                      <strong>Declaration:</strong> I hereby certify that the information provided is accurate and that the registered guest(s) will adhere strictly to all estate rules and security regulations of KEFFI APARTMENT SUITES.
+                      <strong>Declaration:</strong> I hereby certify that the information provided is accurate and that the registered guest(s) will adhere strictly to all estate rules and security regulations of KSA CONCIERGE SERVICES.
                     </span>
                   </label>
                   {errors.confirmedAccuracy && <span className="form-error" style={{ display: 'block', marginTop: '0.5rem' }}>{errors.confirmedAccuracy}</span>}

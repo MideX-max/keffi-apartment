@@ -1,12 +1,12 @@
 // KEFFI APARTMENT SUITES Constants & Brand Helpers
 
 export const BRAND = {
-  name: "KEFFI APARTMENT SUITES",
-  shortName: "KAS",
+  name: "KSA Concierge Services",
+  shortName: "KSA",
   tagline: "Guest Registration & Access Management",
-  address: "14 Keffi Street, Ikoyi / Victoria Island Axis, Lagos, Nigeria",
-  phone: "+234 800 533 3442",
-  email: "reservations@keffiapartments.ng",
+  address: "20B Keffi Street, off Awolowo Road, Ikoyi, Lagos",
+  phone: "+234 704 362 3113",
+  email: "ksaconciergeservices@gmail.com",
   securityGate: "Main Gatehouse Access Control • Station A",
   colors: {
     black: "#111111",
@@ -18,12 +18,10 @@ export const BRAND = {
 };
 
 export const DEFAULT_FLATS = [
-  "Azalea C1",
-  "Hibiscus B4",
-  "Jasmine A2",
-  "Orchid D3",
-  "Magnolia E1",
-  "Rosewood A5"
+  "Azalea",
+  "Beaumont",
+  "Charleston",
+  "Darwin"
 ];
 
 export const ID_TYPES = [
