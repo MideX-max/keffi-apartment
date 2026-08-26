@@ -15,7 +15,7 @@ KAS/
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 20.19+ (the Vite 8 / ESLint 10 toolchain refuses to build on older versions; a `.nvmrc` pinning Node 22 is included)
 - PostgreSQL (local or cloud like Supabase)
 
 ### Installation
@@ -113,7 +113,12 @@ DATABASE_URL=postgresql://postgres:password@localhost:5432/kas
 ### Option 2: Supabase (Recommended - Free Tier)
 1. Create account at https://supabase.com
 2. Create new project (free tier)
-3. Get connection string from project settings
+3. Copy the **Session/Transaction pooler** URI from Project Settings > Database.
+   Do not use the direct `db.<project-ref>.supabase.co` host: it is IPv6-only and
+   unreachable from most hosting providers.
+   ```
+   DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+   ```
 4. Update `DATABASE_URL` in `server/.env`
 5. Set `DATABASE_SSL=true`
 
