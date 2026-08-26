@@ -42,9 +42,7 @@ function publicAdmin(admin) {
   return adminData;
 }
 
-// Rate limiting disabled for development/testing
-// router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
-router.post('/login', asyncHandler(async (req, res) => {
+router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
