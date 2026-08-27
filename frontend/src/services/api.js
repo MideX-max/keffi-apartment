@@ -102,6 +102,34 @@ export const api = {
     };
   },
 
+  async getFlats(token = '') {
+    return requestJson('/flats', {
+      headers: authHeaders(token)
+    });
+  },
+
+  async addFlat(flat, token = '') {
+    return requestJson('/flats', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token)
+      },
+      body: JSON.stringify(flat)
+    });
+  },
+
+  async updateFlat(id, updates, token = '') {
+    return requestJson(`/flats/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token)
+      },
+      body: JSON.stringify(updates)
+    });
+  },
+
   async getStats(token = '') {
     return requestJson('/stats', {
       headers: authHeaders(token)
@@ -142,9 +170,11 @@ export const api = {
     return data.admin;
   },
 
-  async uploadFile(file) {
+  // `kind` routes the file into the right Cloudinary folder.
+  async uploadFile(file, kind = 'id-document') {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('kind', kind);
 
     const data = await requestJson('/upload', {
       method: 'POST',
@@ -155,5 +185,19 @@ export const api = {
       ...data,
       fileUrl: normalizeAssetUrl(data.fileUrl)
     };
+  },
+
+  // Removes an upload that was abandoned or replaced before it was saved.
+  async deleteUpload(publicId, resourceType = 'image', token = '') {
+    if (!publicId) return null;
+
+    return requestJson('/upload', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders(token)
+      },
+      body: JSON.stringify({ publicId, resourceType })
+    });
   }
 };
