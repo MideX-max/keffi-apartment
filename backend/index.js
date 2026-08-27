@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { isCloudinaryConfigured } from './services/cloudinary.js';
 import authRoutes from './routes/auth.js';
 import flatRoutes from './routes/flats.js';
 import reservationRoutes from './routes/reservations.js';
@@ -43,13 +44,6 @@ app.use(cors({
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
-  dotfiles: 'deny',
-  setHeaders(res) {
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-  }
-}));
-
 app.use('/api/auth', authRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/flats', flatRoutes);
@@ -61,12 +55,13 @@ app.get('/api/health', (req, res) => {
     status: 'online',
     app: 'KEFFI APARTMENT SUITES Guest Management System API',
     version: '1.0.0',
+    fileStorage: isCloudinaryConfigured ? 'cloudinary' : 'unconfigured',
     timestamp: new Date().toISOString()
   });
 });
 
 // Serve frontend build if dist exists
-const distPath = path.join(__dirname, '..', 'keffi-apartment-suites', 'dist');
+const distPath = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(distPath));
 
 // Catch-all for SPA client routing (prevent 404 on refresh)
@@ -74,6 +69,7 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
     return next();
   }
+
   const indexPath = path.join(distPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
@@ -87,7 +83,22 @@ app.use((err, req, res, next) => {
   console.error('Unhandled API Error:', err);
 
   if (err.name === 'MulterError') {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        message: `File is too large. Maximum size is ${process.env.MAX_UPLOAD_MB || 10}MB.`
+      });
+    }
     return res.status(400).json({ message: err.message });
+  }
+
+  if (err.name === 'CloudinaryError') {
+    return res.status(err.status || 502).json({ message: err.message });
+  }
+
+  // Errors that already carry a client-error status (e.g. a rejected upload
+  // type) should surface as that status rather than a generic 500.
+  if (Number.isInteger(err.status) && err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({ message: err.message });
   }
 
   if (err.message === 'Origin not allowed by CORS.') {
