@@ -1,35 +1,47 @@
 import 'dotenv/config';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import pg from 'pg';
+import { connectToDatabase, disconnectFromDatabase, mongoose } from '../db/connection.js';
+import { CASE_INSENSITIVE } from '../db/collation.js';
+import { Admin } from '../models/Admin.js';
+import { Flat } from '../models/Flat.js';
+import { Reservation } from '../models/Reservation.js';
 import { DEFAULT_MANAGER_SIGNATURE, INITIAL_MANAGERS, INITIAL_FLATS } from '../data/seedData.js';
-
-const { Pool } = pg;
-
-const DATABASE_URL = process.env.DATABASE_URL;
-const isProduction = process.env.NODE_ENV === 'production';
-
-if (!DATABASE_URL) {
-  throw new Error(
-    'postgresql://postgres.eruvbugvshnfbpyjsnow:keffiapartmen@aws-0-eu-west-2.pooler.supabase.com:6543/postgres'
-  );
-}
-
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  max: Number(process.env.DB_POOL_SIZE || 10),
-  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined
-});
+import {
+  FOLDERS,
+  destroyAssets,
+  isCloudinaryConfigured,
+  isDataUri,
+  uploadDataUri
+} from '../services/cloudinary.js';
 
 function toDateOnly(value) {
   if (!value) return '';
   if (value instanceof Date) return value.toISOString().slice(0, 10);
-  return String(value).slice(0, 10);
+
+  const raw = String(value).trim();
+  const parts = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!parts) return raw.slice(0, 10);
+
+  const [, year, month, day] = parts;
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
 function toTimeOnly(value, fallback) {
   if (!value) return fallback;
-  return String(value).slice(0, 5);
+
+  const parts = String(value).trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!parts) return fallback;
+
+  const [, hours, minutes] = parts;
+  return `${hours.padStart(2, '0')}:${minutes}`;
+}
+
+function todayDateOnly() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
 }
 
 function cleanString(value, fallback = '') {
@@ -64,66 +76,80 @@ function validateDateRange(checkInDate, checkOutDate) {
   }
 }
 
-function adminFromRow(row) {
-  if (!row) return null;
+function toIsoString(value) {
+  if (!value) return value;
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+function adminFromDoc(doc) {
+  if (!doc) return null;
   return {
-    id: row.id,
-    name: row.name,
-    role: row.role,
-    email: row.email,
-    passwordHash: row.password_hash,
-    phone: row.phone || '',
-    estateName: row.estate_name,
-    estateAddress: row.estate_address,
-    gateContact: row.gate_contact,
-    defaultSignature: row.default_signature || DEFAULT_MANAGER_SIGNATURE,
-    autoApprovalEnabled: row.auto_approval_enabled,
-    strictIdCheck: row.strict_id_check,
-    notificationEmail: row.notification_email || ''
+    id: doc._id,
+    name: doc.name,
+    role: doc.role,
+    email: doc.email,
+    passwordHash: doc.passwordHash,
+    phone: doc.phone || '',
+    estateName: doc.estateName,
+    estateAddress: doc.estateAddress,
+    gateContact: doc.gateContact,
+    defaultSignature: doc.defaultSignature || DEFAULT_MANAGER_SIGNATURE,
+    defaultSignaturePublicId: doc.defaultSignaturePublicId || '',
+    autoApprovalEnabled: doc.autoApprovalEnabled,
+    strictIdCheck: doc.strictIdCheck,
+    notificationEmail: doc.notificationEmail || ''
   };
 }
 
-function reservationFromRow(row) {
-  if (!row) return null;
+function reservationFromDoc(doc) {
+  if (!doc) return null;
   return {
-    id: row.id,
-    passId: row.pass_id,
-    guestName: row.guest_name,
-    email: row.email || '',
-    phone: row.phone || '',
-    guestCount: Number(row.guest_count || 1),
-    purpose: row.purpose || 'Apartment Stay',
-    flat: row.flat,
-    checkInDate: toDateOnly(row.check_in_date),
-    checkOutDate: toDateOnly(row.check_out_date),
-    checkInTime: toTimeOnly(row.check_in_time, '14:00'),
-    checkOutTime: toTimeOnly(row.check_out_time, '11:00'),
-    idType: row.id_type || 'National Identification Number (NIN)',
-    idNumber: row.id_number || '',
-    idDocumentName: row.id_document_name || '',
-    idDocumentUrl: row.id_document_url || '',
-    photoUrl: row.photo_url || '',
-    signatureUrl: row.signature_url || '',
-    managerSignatureUrl: row.manager_signature_url || DEFAULT_MANAGER_SIGNATURE,
-    status: row.status,
-    autoApproved: row.auto_approved,
-    verificationNotes: row.verification_notes || '',
-    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
-    submittedBy: row.submitted_by || 'Guest / Representative'
+    id: doc._id,
+    passId: doc.passId,
+    guestName: doc.guestName,
+    email: doc.email || '',
+    phone: doc.phone || '',
+    guestCount: Number(doc.guestCount || 1),
+    purpose: doc.purpose || 'Apartment Stay',
+    flat: doc.flat,
+    checkInDate: toDateOnly(doc.checkInDate),
+    checkOutDate: toDateOnly(doc.checkOutDate),
+    checkInTime: toTimeOnly(doc.checkInTime, '14:00'),
+    checkOutTime: toTimeOnly(doc.checkOutTime, '11:00'),
+    idType: doc.idType || 'National Identification Number (NIN)',
+    idNumber: doc.idNumber || '',
+    idDocumentName: doc.idDocumentName || '',
+    idDocumentUrl: doc.idDocumentUrl || '',
+    photoUrl: doc.photoUrl || '',
+    signatureUrl: doc.signatureUrl || '',
+    managerSignatureUrl: doc.managerSignatureUrl || DEFAULT_MANAGER_SIGNATURE,
+    airbnbBooking: Boolean(doc.airbnbBooking),
+    airbnbScreenshotUrl: doc.airbnbScreenshotUrl || '',
+    airbnbScreenshotName: doc.airbnbScreenshotName || '',
+    idDocumentPublicId: doc.idDocumentPublicId || '',
+    photoPublicId: doc.photoPublicId || '',
+    signaturePublicId: doc.signaturePublicId || '',
+    airbnbScreenshotPublicId: doc.airbnbScreenshotPublicId || '',
+    status: doc.status,
+    autoApproved: doc.autoApproved,
+    verificationNotes: doc.verificationNotes || '',
+    createdAt: toIsoString(doc.createdAt),
+    submittedBy: doc.submittedBy || 'Guest / Representative'
   };
 }
 
-function flatFromRow(row) {
+function flatFromDoc(doc) {
+  if (!doc) return null;
   return {
-    id: row.id,
-    name: row.name,
-    block: row.block,
-    floor: row.floor,
-    type: row.type,
-    status: row.status,
-    currentGuest: row.current_guest || null,
-    currentPassId: row.current_pass_id || null,
-    description: row.description || ''
+    id: doc._id,
+    name: doc.name,
+    block: doc.block,
+    floor: doc.floor,
+    type: doc.type,
+    status: doc.status,
+    currentGuest: doc.currentGuest || null,
+    currentPassId: doc.currentPassId || null,
+    description: doc.description || ''
   };
 }
 
@@ -145,154 +171,164 @@ export function redactReservationForPublic(reservation) {
   };
 }
 
-class StorageEngine {
-  constructor(dbPool) {
-    this.pool = dbPool;
+// The four media slots a reservation carries. Each maps a public URL field to
+// the Cloudinary bookkeeping fields that let us clean the asset up later.
+const RESERVATION_MEDIA = [
+  { url: 'idDocumentUrl', publicId: 'idDocumentPublicId', resourceType: 'idDocumentResourceType', folder: FOLDERS.idDocument },
+  { url: 'photoUrl', publicId: 'photoPublicId', resourceType: 'photoResourceType', folder: FOLDERS.photo },
+  { url: 'signatureUrl', publicId: 'signaturePublicId', resourceType: 'signatureResourceType', folder: FOLDERS.signature },
+  { url: 'airbnbScreenshotUrl', publicId: 'airbnbScreenshotPublicId', resourceType: 'airbnbScreenshotResourceType', folder: FOLDERS.booking }
+];
+
+/**
+ * Works out what should be stored for one media slot, uploading to Cloudinary
+ * when the incoming value is an inline `data:` URI (drawn signatures arrive
+ * that way). Returns the fields to persist plus any asset the change orphans.
+ *
+ * The built-in manager signature is a bundled `data:` SVG rather than user
+ * content, so it is stored inline and never uploaded.
+ */
+async function resolveMediaSlot({ incomingUrl, incomingPublicId, incomingResourceType, existing, folder, filename }) {
+  const previous = {
+    url: existing?.url || '',
+    publicId: existing?.publicId || '',
+    resourceType: existing?.resourceType || ''
+  };
+
+  // Field absent from the payload: leave the slot exactly as it is.
+  if (incomingUrl === undefined || incomingUrl === null) {
+    return { fields: null, orphaned: null };
   }
 
+  const value = String(incomingUrl).trim();
+
+  if (value === previous.url && !isDataUri(value)) {
+    return { fields: null, orphaned: null };
+  }
+
+  const orphaned = previous.publicId
+    ? { publicId: previous.publicId, resourceType: previous.resourceType }
+    : null;
+
+  if (value === '') {
+    return { fields: { url: '', publicId: '', resourceType: '' }, orphaned };
+  }
+
+  if (value === DEFAULT_MANAGER_SIGNATURE) {
+    return { fields: { url: value, publicId: '', resourceType: '' }, orphaned };
+  }
+
+  if (isDataUri(value)) {
+    if (!isCloudinaryConfigured) {
+      throw new Error('File storage is not configured, so signatures and images cannot be saved.');
+    }
+
+    const asset = await uploadDataUri(value, { folder, filename });
+    return {
+      fields: { url: asset.url, publicId: asset.publicId, resourceType: asset.resourceType },
+      orphaned
+    };
+  }
+
+  // Already-hosted URL (normally one this app just uploaded via /api/upload).
+  // PDFs are stored as 'raw', so trust the reported type and fall back to the
+  // URL path segment rather than assuming every asset is an image.
+  const publicId = cleanString(incomingPublicId);
+  const reported = cleanString(incomingResourceType);
+  const fromUrl = /\/(image|raw|video)\/upload\//.exec(value)?.[1] || '';
+
+  return {
+    fields: {
+      url: value,
+      publicId,
+      resourceType: publicId ? (reported || fromUrl || 'image') : ''
+    },
+    orphaned
+  };
+}
+
+class StorageEngine {
   async init() {
-    await this.pool.query('SELECT 1');
+    await connectToDatabase();
+    await mongoose.connection.db.admin().command({ ping: 1 });
     await this.migrate();
     await this.seedFlats();
     await this.seedAdmin();
   }
 
+  async close() {
+    await disconnectFromDatabase();
+  }
+
+  // MongoDB creates collections lazily, so "migrating" means making sure the
+  // schema-declared indexes (uniqueness + lookup paths) exist on the server.
   async migrate() {
-    await this.pool.query(`
-      CREATE TABLE IF NOT EXISTS admins (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        role TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        phone TEXT,
-        estate_name TEXT NOT NULL,
-        estate_address TEXT NOT NULL,
-        gate_contact TEXT NOT NULL,
-        default_signature TEXT,
-        auto_approval_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-        strict_id_check BOOLEAN NOT NULL DEFAULT TRUE,
-        notification_email TEXT,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-
-      CREATE TABLE IF NOT EXISTS flats (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL UNIQUE,
-        block TEXT NOT NULL,
-        floor TEXT NOT NULL,
-        type TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'available',
-        current_guest TEXT,
-        current_pass_id TEXT,
-        description TEXT,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-
-      CREATE TABLE IF NOT EXISTS reservations (
-        id TEXT PRIMARY KEY,
-        pass_id TEXT NOT NULL UNIQUE,
-        guest_name TEXT NOT NULL,
-        email TEXT,
-        phone TEXT NOT NULL,
-        guest_count INTEGER NOT NULL DEFAULT 1,
-        purpose TEXT,
-        flat TEXT NOT NULL REFERENCES flats(name) ON UPDATE CASCADE,
-        check_in_date DATE NOT NULL,
-        check_out_date DATE NOT NULL,
-        check_in_time TIME NOT NULL DEFAULT '14:00',
-        check_out_time TIME NOT NULL DEFAULT '11:00',
-        id_type TEXT,
-        id_number TEXT,
-        id_document_name TEXT,
-        id_document_url TEXT,
-        photo_url TEXT,
-        signature_url TEXT,
-        manager_signature_url TEXT,
-        status TEXT NOT NULL,
-        auto_approved BOOLEAN NOT NULL DEFAULT FALSE,
-        verification_notes TEXT,
-        submitted_by TEXT,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        CONSTRAINT reservations_valid_date_range CHECK (check_out_date > check_in_date)
-      );
-
-      CREATE INDEX IF NOT EXISTS reservations_pass_id_idx ON reservations (pass_id);
-      CREATE INDEX IF NOT EXISTS reservations_flat_dates_idx ON reservations (LOWER(flat), check_in_date, check_out_date);
-      CREATE INDEX IF NOT EXISTS reservations_status_idx ON reservations (status);
-      CREATE INDEX IF NOT EXISTS reservations_created_at_idx ON reservations (created_at DESC);
-    `);
+    await Promise.all([Admin.syncIndexes(), Flat.syncIndexes(), Reservation.syncIndexes()]);
   }
 
   async dropAllTables() {
-    await this.pool.query('DROP TABLE IF EXISTS reservations CASCADE');
-    await this.pool.query('DROP TABLE IF EXISTS flats CASCADE');
-    await this.pool.query('DROP TABLE IF EXISTS admins CASCADE');
+    for (const model of [Reservation, Flat, Admin]) {
+      await model.collection.drop().catch(error => {
+        if (error.codeName !== 'NamespaceNotFound') throw error;
+      });
+    }
   }
 
   async seedFlats() {
     for (const flat of INITIAL_FLATS) {
-      await this.pool.query(
-        `
-          INSERT INTO flats (id, name, block, floor, type, status, current_guest, current_pass_id, description)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          ON CONFLICT (id) DO UPDATE SET
-            name = EXCLUDED.name,
-            block = EXCLUDED.block,
-            floor = EXCLUDED.floor,
-            type = EXCLUDED.type,
-            description = EXCLUDED.description
-        `,
-        [
-          flat.id,
-          flat.name,
-          flat.block,
-          flat.floor,
-          flat.type,
-          flat.status,
-          flat.currentGuest,
-          flat.currentPassId,
-          flat.description
-        ]
+      await Flat.updateOne(
+        { _id: flat.id },
+        {
+          $set: {
+            name: flat.name,
+            block: flat.block,
+            floor: flat.floor,
+            type: flat.type,
+            description: flat.description
+          },
+          // Occupancy fields are only applied on insert so existing state survives reseeds,
+          // matching the previous ON CONFLICT (id) DO UPDATE clause.
+          $setOnInsert: {
+            status: flat.status,
+            currentGuest: flat.currentGuest,
+            currentPassId: flat.currentPassId
+          }
+        },
+        { upsert: true }
       );
     }
   }
 
   async seedAdmin() {
-    const { rows } = await this.pool.query('SELECT COUNT(*)::int AS count FROM admins');
-    if (rows[0].count > 0) return;
+    const existing = await Admin.countDocuments({});
+    if (existing > 0) return;
 
     // Seed multiple managers with their specific passwords
     for (const manager of INITIAL_MANAGERS) {
       const passwordHash = await bcrypt.hash(manager.password, 12);
-      
-      await this.pool.query(
-        `
-          INSERT INTO admins (
-            id, name, role, email, password_hash, phone, estate_name, estate_address,
-            gate_contact, default_signature, auto_approval_enabled, strict_id_check, notification_email
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-          ON CONFLICT (email) DO NOTHING
-        `,
-        [
-          manager.id,
-          manager.name,
-          manager.role,
-          manager.email,
-          passwordHash,
-          manager.phone,
-          manager.estateName,
-          manager.estateAddress,
-          manager.gateContact,
-          manager.defaultSignature,
-          manager.autoApprovalEnabled,
-          manager.strictIdCheck,
-          manager.notificationEmail
-        ]
+
+      await Admin.updateOne(
+        { email: manager.email },
+        {
+          $setOnInsert: {
+            _id: manager.id,
+            name: manager.name,
+            role: manager.role,
+            email: manager.email,
+            passwordHash,
+            phone: manager.phone,
+            estateName: manager.estateName,
+            estateAddress: manager.estateAddress,
+            gateContact: manager.gateContact,
+            defaultSignature: manager.defaultSignature,
+            autoApprovalEnabled: manager.autoApprovalEnabled,
+            strictIdCheck: manager.strictIdCheck,
+            notificationEmail: manager.notificationEmail,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        },
+        { upsert: true, timestamps: false }
       );
     }
 
@@ -321,32 +357,126 @@ class StorageEngine {
     return { ...reservation, status: this.computeStatus(reservation) };
   }
 
+  /**
+   * Resolves every media slot on a reservation payload against what is already
+   * stored, returning the fields to persist and the assets left orphaned.
+   */
+  async resolveReservationMedia(payload, existingDoc = null) {
+    const fields = {};
+    const orphaned = [];
+
+    for (const slot of RESERVATION_MEDIA) {
+      const result = await resolveMediaSlot({
+        incomingUrl: payload[slot.url],
+        incomingPublicId: payload[slot.publicId],
+        incomingResourceType: payload[slot.resourceType],
+        existing: existingDoc
+          ? {
+            url: existingDoc[slot.url],
+            publicId: existingDoc[slot.publicId],
+            resourceType: existingDoc[slot.resourceType]
+          }
+          : null,
+        folder: slot.folder,
+        filename: payload.idDocumentName
+      });
+
+      if (result.fields) {
+        fields[slot.url] = result.fields.url;
+        fields[slot.publicId] = result.fields.publicId;
+        fields[slot.resourceType] = result.fields.resourceType;
+      }
+      if (result.orphaned) orphaned.push(result.orphaned);
+    }
+
+    return { fields, orphaned };
+  }
+
+  /** True when a saved record still points at this Cloudinary asset. */
+  async findAssetReference(publicId) {
+    if (!publicId) return null;
+
+    const reservation = await Reservation.findOne({
+      $or: [
+        { idDocumentPublicId: publicId },
+        { photoPublicId: publicId },
+        { signaturePublicId: publicId },
+        { airbnbScreenshotPublicId: publicId }
+      ]
+    }).select('_id').lean();
+
+    if (reservation) return { type: 'reservation', id: reservation._id };
+
+    const admin = await Admin.findOne({ defaultSignaturePublicId: publicId }).select('_id').lean();
+    if (admin) return { type: 'admin', id: admin._id };
+
+    return null;
+  }
+
+  /** Every Cloudinary asset referenced by the database, for bulk cleanup. */
+  async collectAllAssets() {
+    const [reservations, admins] = await Promise.all([
+      Reservation.find({}).select(
+        'idDocumentPublicId idDocumentResourceType photoPublicId photoResourceType ' +
+        'signaturePublicId signatureResourceType airbnbScreenshotPublicId airbnbScreenshotResourceType'
+      ).lean(),
+      Admin.find({}).select('defaultSignaturePublicId defaultSignatureResourceType').lean()
+    ]);
+
+    const assets = [];
+    for (const doc of reservations) {
+      for (const slot of RESERVATION_MEDIA) {
+        if (doc[slot.publicId]) {
+          assets.push({ publicId: doc[slot.publicId], resourceType: doc[slot.resourceType] });
+        }
+      }
+    }
+    for (const doc of admins) {
+      if (doc.defaultSignaturePublicId) {
+        assets.push({ publicId: doc.defaultSignaturePublicId, resourceType: doc.defaultSignatureResourceType });
+      }
+    }
+    return assets;
+  }
+
+  // Replaces the flat -> flats(name) foreign key that PostgreSQL enforced.
+  async assertFlatExists(flatName) {
+    const exists = await Flat.exists({ name: flatName });
+    if (!exists) {
+      throw new Error(`Flat "${flatName}" does not exist.`);
+    }
+  }
+
   async checkFlatConflict(flatName, checkInDate, checkOutDate, excludeReservationId = null) {
     if (!flatName || !checkInDate || !checkOutDate) return null;
     validateDateRange(checkInDate, checkOutDate);
 
-    const { rows } = await this.pool.query(
-      `
-        SELECT *
-        FROM reservations
-        WHERE LOWER(flat) = LOWER($1)
-          AND status NOT IN ('Rejected', 'Expired')
-          AND check_out_date >= CURRENT_DATE
-          AND $2::date < check_out_date
-          AND $3::date > check_in_date
-          AND ($4::text IS NULL OR (id <> $4 AND pass_id <> $4))
-        ORDER BY created_at DESC
-        LIMIT 1
-      `,
-      [cleanString(flatName), checkInDate, checkOutDate, excludeReservationId]
-    );
+    const from = toDateOnly(checkInDate);
+    const to = toDateOnly(checkOutDate);
 
-    return this.withDynamicStatus(reservationFromRow(rows[0]));
+    const query = {
+      flat: cleanString(flatName),
+      status: { $nin: ['Rejected', 'Expired'] },
+      checkOutDate: { $gte: todayDateOnly(), $gt: from },
+      checkInDate: { $lt: to }
+    };
+
+    if (excludeReservationId) {
+      query._id = { $ne: excludeReservationId };
+      query.passId = { $ne: excludeReservationId };
+    }
+
+    const doc = await Reservation.findOne(query)
+      .collation(CASE_INSENSITIVE)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return this.withDynamicStatus(reservationFromDoc(doc));
   }
 
   async getReservations(filters = {}) {
-    const { rows } = await this.pool.query('SELECT * FROM reservations ORDER BY created_at DESC');
-    let list = rows.map(row => this.withDynamicStatus(reservationFromRow(row)));
+    const docs = await Reservation.find().sort({ createdAt: -1 }).lean();
+    let list = docs.map(doc => this.withDynamicStatus(reservationFromDoc(doc)));
 
     if (filters.status && filters.status !== 'All') {
       list = list.filter(reservation => reservation.status.toLowerCase() === filters.status.toLowerCase());
@@ -371,11 +501,13 @@ class StorageEngine {
   }
 
   async getReservationByIdOrPassId(identifier) {
-    const { rows } = await this.pool.query(
-      'SELECT * FROM reservations WHERE id = $1 OR LOWER(pass_id) = LOWER($1) LIMIT 1',
-      [identifier]
-    );
-    return this.withDynamicStatus(reservationFromRow(rows[0]));
+    if (!identifier) return null;
+
+    const doc = await Reservation.findOne({ $or: [{ _id: identifier }, { passId: identifier }] })
+      .collation(CASE_INSENSITIVE)
+      .lean();
+
+    return this.withDynamicStatus(reservationFromDoc(doc));
   }
 
   async createReservation(payload) {
@@ -396,16 +528,23 @@ class StorageEngine {
       throw new Error(`Flat "${flat}" is already booked for those dates.`);
     }
 
+    await this.assertFlatExists(flat);
+
     const admin = await this.getAdmin();
-    const hasIdentity = Boolean(cleanString(payload.idDocumentUrl) || cleanString(payload.idNumber));
-    const hasSignature = Boolean(cleanString(payload.signatureUrl));
+
+    // Push any inline data: URIs (drawn signatures) up to Cloudinary first, so
+    // what lands in the database is always a hosted URL plus its public id.
+    const { fields: media } = await this.resolveReservationMedia(payload, null);
+
+    const hasIdentity = Boolean(cleanString(media.idDocumentUrl) || cleanString(payload.idNumber));
+    const hasSignature = Boolean(cleanString(media.signatureUrl));
     const autoApproved = hasIdentity && hasSignature;
     const verificationNotes = autoApproved
       ? 'Automated validation passed all checks.'
       : 'Flagged: identity document/number and guest signature are required before approval.';
 
-    const record = {
-      id: generateRecordId('res'),
+    const created = await Reservation.create({
+      _id: generateRecordId('res'),
       passId: payload.passId || generatePassId(),
       guestName,
       email: cleanString(payload.email),
@@ -420,80 +559,40 @@ class StorageEngine {
       idType: cleanString(payload.idType, 'National Identification Number (NIN)'),
       idNumber: cleanString(payload.idNumber),
       idDocumentName: cleanString(payload.idDocumentName),
-      idDocumentUrl: cleanString(payload.idDocumentUrl),
-      photoUrl: cleanString(payload.photoUrl),
-      signatureUrl: cleanString(payload.signatureUrl),
+      airbnbBooking: Boolean(payload.airbnbBooking),
+      airbnbScreenshotName: cleanString(payload.airbnbScreenshotName),
+      ...media,
       managerSignatureUrl: admin?.defaultSignature || DEFAULT_MANAGER_SIGNATURE,
       status: autoApproved ? 'Approved' : 'Pending Review',
       autoApproved,
       verificationNotes,
       submittedBy: cleanString(payload.submittedBy, 'Guest / Representative')
-    };
+    });
 
-    const { rows } = await this.pool.query(
-      `
-        INSERT INTO reservations (
-          id, pass_id, guest_name, email, phone, guest_count, purpose, flat,
-          check_in_date, check_out_date, check_in_time, check_out_time,
-          id_type, id_number, id_document_name, id_document_url, photo_url,
-          signature_url, manager_signature_url, status, auto_approved,
-          verification_notes, submitted_by
-        )
-        VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8,
-          $9, $10, $11, $12,
-          $13, $14, $15, $16, $17,
-          $18, $19, $20, $21,
-          $22, $23
-        )
-        RETURNING *
-      `,
-      [
-        record.id,
-        record.passId,
-        record.guestName,
-        record.email,
-        record.phone,
-        record.guestCount,
-        record.purpose,
-        record.flat,
-        record.checkInDate,
-        record.checkOutDate,
-        record.checkInTime,
-        record.checkOutTime,
-        record.idType,
-        record.idNumber,
-        record.idDocumentName,
-        record.idDocumentUrl,
-        record.photoUrl,
-        record.signatureUrl,
-        record.managerSignatureUrl,
-        record.status,
-        record.autoApproved,
-        record.verificationNotes,
-        record.submittedBy
-      ]
-    );
-
-    return this.withDynamicStatus(reservationFromRow(rows[0]));
+    return this.withDynamicStatus(reservationFromDoc(created.toObject()));
   }
 
-  async updateReservationStatus(id, newStatus, notes = '') {
-    const admin = await this.getAdmin();
-    const { rows } = await this.pool.query(
-      `
-        UPDATE reservations
-        SET status = $2,
-            verification_notes = COALESCE(NULLIF($3, ''), verification_notes),
-            manager_signature_url = CASE WHEN $2 = 'Approved' THEN $4 ELSE manager_signature_url END,
-            updated_at = NOW()
-        WHERE id = $1 OR pass_id = $1
-        RETURNING *
-      `,
-      [id, newStatus, notes, admin?.defaultSignature || DEFAULT_MANAGER_SIGNATURE]
-    );
+  async updateReservationStatus(id, newStatus, notes = '', actorId = null) {
+    const admin = (await this.getAdminById(actorId)) || (await this.getAdmin());
+    const update = { status: newStatus };
 
-    return this.withDynamicStatus(reservationFromRow(rows[0]));
+    // The previous SQL used COALESCE(NULLIF(notes, '')) so blank notes never
+    // overwrote an existing verification note.
+    if (cleanString(notes)) {
+      update.verificationNotes = cleanString(notes);
+    }
+
+    if (newStatus === 'Approved') {
+      update.managerSignatureUrl = admin?.defaultSignature || DEFAULT_MANAGER_SIGNATURE;
+    }
+
+    const doc = await Reservation.findOneAndUpdate(
+      { $or: [{ _id: id }, { passId: id }] },
+      { $set: update },
+      { new: true, runValidators: true }
+    ).lean();
+
+    return this.withDynamicStatus(reservationFromDoc(doc));
   }
 
   async updateReservation(id, updates) {
@@ -511,9 +610,12 @@ class StorageEngine {
       throw new Error(`Flat "${targetFlat}" is already booked during those dates.`);
     }
 
+    await this.assertFlatExists(targetFlat);
+
+    const existingDoc = await Reservation.findOne({ $or: [{ _id: id }, { passId: id }] }).lean();
+    const { fields: media, orphaned } = await this.resolveReservationMedia(updates, existingDoc);
+
     const next = {
-      ...existing,
-      ...updates,
       guestName: cleanString(updates.guestName, existing.guestName),
       email: cleanString(updates.email, existing.email),
       phone: cleanString(updates.phone, existing.phone),
@@ -527,77 +629,34 @@ class StorageEngine {
       idType: cleanString(updates.idType, existing.idType),
       idNumber: cleanString(updates.idNumber, existing.idNumber),
       idDocumentName: cleanString(updates.idDocumentName, existing.idDocumentName),
-      idDocumentUrl: cleanString(updates.idDocumentUrl, existing.idDocumentUrl),
-      photoUrl: cleanString(updates.photoUrl, existing.photoUrl),
-      signatureUrl: cleanString(updates.signatureUrl, existing.signatureUrl),
+      airbnbBooking: updates.airbnbBooking ?? existing.airbnbBooking,
+      airbnbScreenshotName: cleanString(updates.airbnbScreenshotName, existing.airbnbScreenshotName),
+      ...media,
       managerSignatureUrl: cleanString(updates.managerSignatureUrl, existing.managerSignatureUrl),
       status: cleanString(updates.status, existing.status),
       verificationNotes: cleanString(updates.verificationNotes, existing.verificationNotes),
       submittedBy: cleanString(updates.submittedBy, existing.submittedBy)
     };
 
-    const { rows } = await this.pool.query(
-      `
-        UPDATE reservations
-        SET guest_name = $2,
-            email = $3,
-            phone = $4,
-            guest_count = $5,
-            purpose = $6,
-            flat = $7,
-            check_in_date = $8,
-            check_out_date = $9,
-            check_in_time = $10,
-            check_out_time = $11,
-            id_type = $12,
-            id_number = $13,
-            id_document_name = $14,
-            id_document_url = $15,
-            photo_url = $16,
-            signature_url = $17,
-            manager_signature_url = $18,
-            status = $19,
-            verification_notes = $20,
-            submitted_by = $21,
-            updated_at = NOW()
-        WHERE id = $1 OR pass_id = $1
-        RETURNING *
-      `,
-      [
-        id,
-        next.guestName,
-        next.email,
-        next.phone,
-        next.guestCount,
-        next.purpose,
-        next.flat,
-        next.checkInDate,
-        next.checkOutDate,
-        next.checkInTime,
-        next.checkOutTime,
-        next.idType,
-        next.idNumber,
-        next.idDocumentName,
-        next.idDocumentUrl,
-        next.photoUrl,
-        next.signatureUrl,
-        next.managerSignatureUrl,
-        next.status,
-        next.verificationNotes,
-        next.submittedBy
-      ]
-    );
+    const doc = await Reservation.findOneAndUpdate(
+      { $or: [{ _id: id }, { passId: id }] },
+      { $set: next },
+      { new: true, runValidators: true }
+    ).lean();
 
-    return this.withDynamicStatus(reservationFromRow(rows[0]));
+    // Only bin the superseded files once the new state is safely persisted.
+    if (doc) await destroyAssets(orphaned);
+
+    return this.withDynamicStatus(reservationFromDoc(doc));
   }
 
   async getFlats() {
-    const { rows } = await this.pool.query('SELECT * FROM flats ORDER BY name');
+    const docs = await Flat.find().sort({ name: 1 }).lean();
     const reservations = await this.getReservations();
     const now = new Date();
 
-    return rows.map(flatRow => {
-      const flat = flatFromRow(flatRow);
+    return docs.map(flatDoc => {
+      const flat = flatFromDoc(flatDoc);
       const activeReservation = reservations.find(reservation => {
         if (reservation.flat.toLowerCase() !== flat.name.toLowerCase()) return false;
         if (reservation.status === 'Rejected' || reservation.status === 'Expired') return false;
@@ -639,99 +698,118 @@ class StorageEngine {
     const name = cleanString(flatData.name);
     if (!name) throw new Error('Flat name is required.');
 
-    const { rows } = await this.pool.query(
-      `
-        INSERT INTO flats (id, name, block, floor, type, status, description)
-        VALUES ($1, $2, $3, $4, $5, 'available', $6)
-        RETURNING *
-      `,
-      [
-        generateRecordId('flat'),
-        name,
-        cleanString(flatData.block, 'Main Building'),
-        cleanString(flatData.floor, '1st Floor'),
-        cleanString(flatData.type, 'Standard Suite'),
-        cleanString(flatData.description)
-      ]
-    );
+    const created = await Flat.create({
+      _id: generateRecordId('flat'),
+      name,
+      block: cleanString(flatData.block, 'Main Building'),
+      floor: cleanString(flatData.floor, '1st Floor'),
+      type: cleanString(flatData.type, 'Standard Suite'),
+      status: 'available',
+      description: cleanString(flatData.description)
+    });
 
-    return flatFromRow(rows[0]);
+    return flatFromDoc(created.toObject());
   }
 
   async updateFlat(id, updates) {
-    const { rows } = await this.pool.query(
-      `
-        UPDATE flats
-        SET name = COALESCE($2, name),
-            block = COALESCE($3, block),
-            floor = COALESCE($4, floor),
-            type = COALESCE($5, type),
-            status = COALESCE($6, status),
-            description = COALESCE($7, description),
-            updated_at = NOW()
-        WHERE id = $1 OR name = $1
-        RETURNING *
-      `,
-      [
-        id,
-        updates.name ? cleanString(updates.name) : null,
-        updates.block ? cleanString(updates.block) : null,
-        updates.floor ? cleanString(updates.floor) : null,
-        updates.type ? cleanString(updates.type) : null,
-        updates.status ? cleanString(updates.status) : null,
-        updates.description !== undefined ? cleanString(updates.description) : null
-      ]
-    );
+    const existing = await Flat.findOne({ $or: [{ _id: id }, { name: id }] }).lean();
+    if (!existing) return null;
 
-    return rows[0] ? flatFromRow(rows[0]) : null;
+    const next = {
+      name: updates.name ? cleanString(updates.name) : existing.name,
+      block: updates.block ? cleanString(updates.block) : existing.block,
+      floor: updates.floor ? cleanString(updates.floor) : existing.floor,
+      type: updates.type ? cleanString(updates.type) : existing.type,
+      status: updates.status ? cleanString(updates.status) : existing.status,
+      description: updates.description !== undefined ? cleanString(updates.description) : existing.description
+    };
+
+    const doc = await Flat.findOneAndUpdate(
+      { _id: existing._id },
+      { $set: next },
+      { new: true, runValidators: true }
+    ).lean();
+
+    // Stands in for ON UPDATE CASCADE on the reservations.flat foreign key.
+    if (doc && next.name !== existing.name) {
+      await Reservation.updateMany({ flat: existing.name }, { $set: { flat: next.name } });
+    }
+
+    return flatFromDoc(doc);
   }
 
+  // The primary manager: used as the "house" identity for signatures stamped on
+  // guest-submitted reservations, where there is no authenticated actor.
   async getAdmin() {
-    const { rows } = await this.pool.query('SELECT * FROM admins ORDER BY created_at ASC LIMIT 1');
-    return adminFromRow(rows[0]);
+    const doc = await Admin.findOne().sort({ createdAt: 1, _id: 1 }).lean();
+    return adminFromDoc(doc);
   }
 
-  async updateAdmin(updates) {
-    const current = await this.getAdmin();
+  async getAdminById(id) {
+    if (!id) return null;
+    const doc = await Admin.findById(id).lean();
+    return adminFromDoc(doc);
+  }
+
+  async getAdminByEmail(email) {
+    const normalized = cleanString(email);
+    if (!normalized) return null;
+    const doc = await Admin.findOne({ email: normalized }).collation(CASE_INSENSITIVE).lean();
+    return adminFromDoc(doc);
+  }
+
+  async updateAdmin(id, updates) {
+    const current = await this.getAdminById(id);
     if (!current) return null;
 
-    const { rows } = await this.pool.query(
-      `
-        UPDATE admins
-        SET name = $2,
-            role = $3,
-            email = $4,
-            password_hash = COALESCE($5, password_hash),
-            phone = $6,
-            estate_name = $7,
-            estate_address = $8,
-            gate_contact = $9,
-            default_signature = $10,
-            auto_approval_enabled = $11,
-            strict_id_check = $12,
-            notification_email = $13,
-            updated_at = NOW()
-        WHERE id = $1
-        RETURNING *
-      `,
-      [
-        current.id,
-        cleanString(updates.name, current.name),
-        cleanString(updates.role, current.role),
-        cleanString(updates.email, current.email),
-        updates.passwordHash || null,
-        cleanString(updates.phone, current.phone),
-        cleanString(updates.estateName, current.estateName),
-        cleanString(updates.estateAddress, current.estateAddress),
-        cleanString(updates.gateContact, current.gateContact),
-        cleanString(updates.defaultSignature, current.defaultSignature),
-        updates.autoApprovalEnabled ?? current.autoApprovalEnabled,
-        updates.strictIdCheck ?? current.strictIdCheck,
-        cleanString(updates.notificationEmail, current.notificationEmail)
-      ]
-    );
+    const currentDoc = await Admin.findById(current.id).lean();
 
-    return adminFromRow(rows[0]);
+    // A manager who draws a new signature sends an inline data: URI; store it in
+    // Cloudinary and drop the one it replaces.
+    const signature = await resolveMediaSlot({
+      incomingUrl: updates.defaultSignature,
+      incomingPublicId: updates.defaultSignaturePublicId,
+      existing: {
+        url: currentDoc?.defaultSignature,
+        publicId: currentDoc?.defaultSignaturePublicId,
+        resourceType: currentDoc?.defaultSignatureResourceType
+      },
+      folder: FOLDERS.managerSignature,
+      filename: `${current.id}-signature`
+    });
+
+    const next = {
+      name: cleanString(updates.name, current.name),
+      role: cleanString(updates.role, current.role),
+      email: cleanString(updates.email, current.email),
+      phone: cleanString(updates.phone, current.phone),
+      estateName: cleanString(updates.estateName, current.estateName),
+      estateAddress: cleanString(updates.estateAddress, current.estateAddress),
+      gateContact: cleanString(updates.gateContact, current.gateContact),
+      autoApprovalEnabled: updates.autoApprovalEnabled ?? current.autoApprovalEnabled,
+      strictIdCheck: updates.strictIdCheck ?? current.strictIdCheck,
+      notificationEmail: cleanString(updates.notificationEmail, current.notificationEmail)
+    };
+
+    if (signature.fields) {
+      next.defaultSignature = signature.fields.url || DEFAULT_MANAGER_SIGNATURE;
+      next.defaultSignaturePublicId = signature.fields.publicId;
+      next.defaultSignatureResourceType = signature.fields.resourceType;
+    }
+
+    if (updates.passwordHash) {
+      next.passwordHash = updates.passwordHash;
+    }
+
+    const doc = await Admin.findOneAndUpdate(
+      { _id: current.id },
+      { $set: next },
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (doc && signature.orphaned) await destroyAssets([signature.orphaned]);
+
+    return adminFromDoc(doc);
   }
 
   async getStats() {
@@ -757,26 +835,22 @@ class StorageEngine {
   }
 
   async resetAllData() {
-    await this.pool.query('DELETE FROM reservations');
-    await this.pool.query('DELETE FROM flats');
-    await this.pool.query('DELETE FROM admins');
-    
-    // Try to reset sequences, but ignore if they don't exist
-    try {
-      await this.pool.query('ALTER SEQUENCE flats_id_seq RESTART WITH 1');
-    } catch (e) {
-      // Sequence might not exist, ignore
+    // Clear the hosted files before the rows that point at them, otherwise the
+    // public ids are gone and the assets are orphaned in Cloudinary forever.
+    const assets = await this.collectAllAssets();
+    const removed = await destroyAssets(assets);
+    if (assets.length) {
+      console.log(`Reset: removed ${removed}/${assets.length} stored files from Cloudinary.`);
     }
-    try {
-      await this.pool.query('ALTER SEQUENCE admins_id_seq RESTART WITH 1');
-    } catch (e) {
-      // Sequence might not exist, ignore
-    }
-    
+
+    await Reservation.deleteMany({});
+    await Flat.deleteMany({});
+    await Admin.deleteMany({});
+
     await this.seedFlats();
     await this.seedAdmin();
     return { message: 'All data has been reset successfully' };
   }
 }
 
-export const storage = new StorageEngine(pool);
+export const storage = new StorageEngine();
