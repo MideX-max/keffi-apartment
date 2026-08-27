@@ -32,13 +32,15 @@ Deploy frontend to a static host and backend to an API host.
 **Backend (Production):**
 ```env
 NODE_ENV=production
-DATABASE_URL=your_production_postgresql_url
-DATABASE_SSL=true
+MONGODB_URI=your_production_mongodb_connection_string
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=keffi
+MAX_UPLOAD_MB=10
 JWT_SECRET=your_secure_random_string_32_chars_minimum
 JWT_EXPIRES_IN=8h
 CORS_ORIGIN=https://your-frontend-domain.com
-ADMIN_BOOTSTRAP_PASSWORD=your_secure_admin_password
-ADMIN_BOOTSTRAP_EMAIL=admin@yourdomain.com
 PORT=5000
 ```
 
@@ -49,15 +51,16 @@ VITE_API_URL=https://your-backend-domain.com/api
 
 ### 2. Security
 - [ ] Generate secure JWT_SECRET (minimum 32 characters)
-- [ ] Set strong admin password
-- [ ] Enable DATABASE_SSL
+- [ ] Change the seeded manager passwords in `server/data/seedData.js`
+- [ ] Use a `mongodb+srv://` (TLS) connection string
 - [ ] Set correct CORS_ORIGIN
-- [ ] Update admin email to your domain
+- [ ] Update manager emails to your domain
 
 ### 3. Database
-- [ ] Set up production PostgreSQL (Supabase recommended)
+- [ ] Set up production MongoDB (MongoDB Atlas recommended)
+- [ ] Allow the deployment host in Atlas **Network Access**
 - [ ] Test database connection
-- [ ] Verify DATABASE_URL is correct
+- [ ] Verify MONGODB_URI is correct
 
 ## 🛠️ Deployment Steps
 
@@ -86,13 +89,13 @@ VITE_API_URL=https://your-backend-domain.com/api
 
 **Frontend (Vercel):**
 1. Import your repository to Vercel
-2. Set root directory to `keffi-apartment-suites`
+2. Set root directory to `frontend`
 3. Add `VITE_API_URL` environment variable
 4. Deploy
 
 **Backend (Render):**
 1. Create a new web service on Render
-2. Set root directory to `server`
+2. Set root directory to `backend`
 3. Add all backend environment variables
 4. Deploy
 
@@ -129,20 +132,23 @@ curl -X POST https://your-backend-domain.com/api/stats/reset \
 - Use the reset button
 - Or call the API endpoint manually
 
-**Option 3: Database Rotation**
-- Set up automated Supabase project recreation
-- Update DATABASE_URL environment variable
+**Option 3: Command-line Reset**
+```bash
+cd backend
+npm run reset          # Clear all data and reseed
+npm run reset:full     # Drop collections, rebuild indexes, reseed
+```
 
 ## 📊 Monitoring & Maintenance
 
 ### Regular Tasks
-- Monitor database storage (Supabase free tier: 500MB)
+- Monitor database storage (MongoDB Atlas free tier: 512MB)
 - Check API logs for errors
 - Verify backup procedures
 - Review security settings
 
 ### Backup Strategy
-- Enable Supabase automated backups
+- Enable MongoDB Atlas automated backups
 - Export data regularly for safety
 - Keep backup of environment variables
 
@@ -160,8 +166,8 @@ curl -X POST https://your-backend-domain.com/api/stats/reset \
 ### Common Issues
 
 **Database Connection Failed:**
-- Verify DATABASE_URL is correct
-- Check DATABASE_SSL setting
+- Verify MONGODB_URI is correct
+- Check that the deployment host is allowed in Atlas Network Access
 - Ensure database is accessible
 
 **CORS Errors:**
@@ -169,9 +175,10 @@ curl -X POST https://your-backend-domain.com/api/stats/reset \
 - Check both frontend and backend URLs
 
 **File Upload Failing:**
-- Ensure uploads directory exists on server
-- Check file size limits
-- Verify storage permissions
+- Verify the three `CLOUDINARY_*` variables are set (a 503 means they are missing)
+- Check `MAX_UPLOAD_MB` against the file being uploaded (a 413 means it is too big)
+- A 400 means the file type is not allowed or its bytes do not match its type
+- Uploads no longer touch the server filesystem, so disk permissions are irrelevant
 
 **Build Errors:**
 - Clear cache and redeploy
