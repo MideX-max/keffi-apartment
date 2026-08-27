@@ -41,6 +41,7 @@ const OfficialPassCard = forwardRef(function OfficialPassCard({ reservation, cla
         padding: '3rem 2.75rem 2.5rem',
         boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
         maxWidth: '740px',
+        width: '100%',
         margin: '0 auto',
         fontFamily: "'Inter', sans-serif",
         color: '#111111'
@@ -97,110 +98,50 @@ const OfficialPassCard = forwardRef(function OfficialPassCard({ reservation, cla
       <div style={{ margin: '2rem 0 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
         
         {/* NAME Field */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', fontSize: '1.15rem', position: 'relative' }}>
+        <div className="pass-line-row" style={{ fontSize: '1.15rem' }}>
           <span style={{ fontWeight: 800, color: '#000000', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
             NAME:
           </span>
-          <div style={{
-            flex: 1,
-            marginLeft: '0.5rem',
-            borderBottom: '2px dotted #444444',
-            minHeight: '32px',
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <span style={{
-              position: 'absolute',
-              bottom: '2px',
-              fontWeight: 700,
-              fontSize: '1.35rem',
-              color: '#000000'
-            }}>
+          <div className="pass-line-slot" style={{ marginLeft: '0.5rem', minHeight: '32px' }}>
+            <span className="pass-line-value" style={{ fontSize: '1.35rem' }}>
               {guestName || "—"}
             </span>
           </div>
         </div>
 
         {/* FLAT NO Field */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', fontSize: '1.15rem', position: 'relative' }}>
+        <div className="pass-line-row" style={{ fontSize: '1.15rem' }}>
           <span style={{ fontWeight: 800, color: '#000000', letterSpacing: '0.02em', whiteSpace: 'nowrap' }}>
             FLAT NO:
           </span>
-          <div style={{
-            flex: 1,
-            marginLeft: '0.5rem',
-            borderBottom: '2px dotted #444444',
-            minHeight: '32px',
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <span style={{
-              position: 'absolute',
-              bottom: '2px',
-              fontWeight: 700,
-              fontSize: '1.35rem',
-              color: '#000000'
-            }}>
+          <div className="pass-line-slot" style={{ marginLeft: '0.5rem', minHeight: '32px' }}>
+            <span className="pass-line-value" style={{ fontSize: '1.35rem' }}>
               {flat || "—"}
             </span>
           </div>
         </div>
 
         {/* START DATE & END DATE Field */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem' }}>
+        <div className="pass-line-dates">
           {/* Start Date */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', fontSize: '1.1rem' }}>
+          <div className="pass-line-row" style={{ flex: 1, fontSize: '1.1rem' }}>
             <span style={{ fontWeight: 800, color: '#000000', whiteSpace: 'nowrap' }}>
               START DATE:
             </span>
-            <div style={{
-              flex: 1,
-              marginLeft: '0.4rem',
-              borderBottom: '2px dotted #444444',
-              minHeight: '30px',
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <span style={{
-                position: 'absolute',
-                bottom: '2px',
-                fontWeight: 700,
-                fontSize: '1.2rem',
-                color: '#000000'
-              }}>
+            <div className="pass-line-slot" style={{ marginLeft: '0.4rem', minHeight: '30px' }}>
+              <span className="pass-line-value" style={{ fontSize: '1.2rem' }}>
                 {formatDatePass(checkInDate)}
               </span>
             </div>
           </div>
 
           {/* End Date */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', fontSize: '1.1rem' }}>
+          <div className="pass-line-row" style={{ flex: 1, fontSize: '1.1rem' }}>
             <span style={{ fontWeight: 800, color: '#000000', whiteSpace: 'nowrap' }}>
               END DATE:
             </span>
-            <div style={{
-              flex: 1,
-              marginLeft: '0.4rem',
-              borderBottom: '2px dotted #444444',
-              minHeight: '30px',
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <span style={{
-                position: 'absolute',
-                bottom: '2px',
-                fontWeight: 700,
-                fontSize: '1.2rem',
-                color: '#000000'
-              }}>
+            <div className="pass-line-slot" style={{ marginLeft: '0.4rem', minHeight: '30px' }}>
+              <span className="pass-line-value" style={{ fontSize: '1.2rem' }}>
                 {formatDatePass(checkOutDate)}
               </span>
             </div>
@@ -227,7 +168,8 @@ const OfficialPassCard = forwardRef(function OfficialPassCard({ reservation, cla
                 <img
                   src={signatureUrl}
                   alt="Guest Signature"
-                  style={{ maxHeight: '60px', maxWidth: '240px', objectFit: 'contain' }}
+                  className="pass-sig-img"
+                style={{ maxHeight: '60px', objectFit: 'contain' }}
                 />
               ) : (
                 <span style={{ fontSize: '0.85rem', color: '#888888', fontStyle: 'italic' }}>
@@ -238,24 +180,16 @@ const OfficialPassCard = forwardRef(function OfficialPassCard({ reservation, cla
           </div>
 
           {/* Facility Manager's Signature */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', fontSize: '1.05rem' }}>
-            <span style={{ fontWeight: 800, textTransform: 'uppercase', color: '#000000', whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>
+          <div className="pass-sig-row" style={{ fontSize: '1.05rem' }}>
+            <span className="pass-sig-caption">
               FACILITY MANAGER’S SIGNATURE:
             </span>
-            <div style={{
-              flex: 1,
-              marginLeft: '0.5rem',
-              borderBottom: '2px dotted #444444',
-              minHeight: '65px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative'
-            }}>
+            <div className="pass-sig-slot" style={{ marginLeft: '0.5rem', minHeight: '65px' }}>
               <img
                 src={managerSignatureUrl || DEFAULT_MANAGER_SIG}
                 alt="Facility Manager Signature"
-                style={{ maxHeight: '60px', maxWidth: '240px', objectFit: 'contain' }}
+                className="pass-sig-img"
+                style={{ maxHeight: '60px', objectFit: 'contain' }}
               />
             </div>
           </div>
@@ -282,24 +216,15 @@ const OfficialPassCard = forwardRef(function OfficialPassCard({ reservation, cla
       </div>
 
       {/* 4. Digital Security Metadata Bar */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: '1.25rem',
-        paddingTop: '0.85rem',
-        borderTop: '1px dashed #cbd5e1',
-        fontSize: '0.75rem',
-        color: '#64748b'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div className="pass-meta-bar">
+        <div className="pass-meta-group">
           <span style={{ fontWeight: 700, color: '#0f172a' }}>PASS ID:</span>
-          <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#1e293b', fontSize: '0.85rem' }}>
+          <span className="pass-meta-id">
             {passId || "KAS-GEN-0000"}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="pass-meta-group">
           <span style={{ color: '#475569' }}>
             Check-in: <strong>{checkInTime}</strong> | Check-out: <strong>{checkOutTime}</strong>
           </span>
