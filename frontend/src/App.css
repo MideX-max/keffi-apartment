@@ -548,7 +548,7 @@
 /* Stat Grid */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 1.25rem;
   margin-bottom: 2rem;
 }
@@ -689,7 +689,7 @@
     font-size: 2.75rem;
   }
   .stat-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   }
   .admin-sidebar {
     width: 240px;
@@ -717,15 +717,22 @@
   }
   .admin-sidebar {
     position: fixed;
-    left: -280px;
+    left: 0;
     top: 0;
     bottom: 0;
     z-index: 90;
-    transition: left 0.25s ease;
-    width: 280px;
+    width: min(280px, 85vw);
+    /* `visibility` keeps the closed drawer out of the tab order and away from
+       screen readers; translating alone would leave it focusable off-screen. */
+    transform: translateX(-100%);
+    visibility: hidden;
+    overflow-y: auto;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
   }
   .admin-sidebar.open {
-    left: 0;
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.25s ease, visibility 0s;
   }
   .admin-topbar {
     padding: 1rem 1.5rem;
@@ -811,7 +818,8 @@
     font-size: 0.85rem;
   }
   .stat-grid {
-    grid-template-columns: 1fr;
+    /* Two up on tablets; a single column only once the screen is phone-sized. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
   .kas-table-container {
@@ -827,6 +835,8 @@
   }
   .admin-topbar {
     padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
   }
   .admin-main-view {
     padding: 1rem;
