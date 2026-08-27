@@ -6,8 +6,8 @@ A comprehensive guest registration and access control system for apartment suite
 
 ```
 KAS/
-├── keffi-apartment-suites/     # React frontend (Vite)
-├── server/                      # Express.js backend
+├── frontend/                    # React frontend (Vite)
+├── backend/                     # Express.js backend (API, database, uploads)
 ├── package.json                 # Root scripts
 └── README.md                    # This file
 ```
@@ -16,7 +16,8 @@ KAS/
 
 ### Prerequisites
 - Node.js 20.19+ (the Vite 8 / ESLint 10 toolchain refuses to build on older versions; a `.nvmrc` pinning Node 22 is included)
-- PostgreSQL (local or cloud like Supabase)
+- MongoDB 6+ (local, or a cloud cluster such as MongoDB Atlas)
+- A Cloudinary account (free tier is fine) for image and file storage
 
 ### Installation
 
@@ -28,15 +29,15 @@ npm install
 2. **Set up environment variables:**
 ```bash
 # Copy example env files
-cp server/.env.example server/.env
-cp keffi-apartment-suites/.env.example keffi-apartment-suites/.env
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
 3. **Configure your database:**
-Edit `server/.env` and update:
-- `DATABASE_URL` - Your PostgreSQL connection string
+Edit `backend/.env` and update:
+- `MONGODB_URI` - Your MongoDB connection string
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` - from your Cloudinary dashboard
 - `JWT_SECRET` - Generate a secure random string
-- `ADMIN_BOOTSTRAP_PASSWORD` - Your initial admin password
 
 4. **Start the application:**
 ```bash
@@ -76,53 +77,52 @@ npm run server   # Backend only
 - CORS protection
 - Security headers
 - Password hashing with bcrypt
-- SQL injection prevention
+- Query injection prevention via schema-typed Mongoose models
 
 ## 🔧 Environment Variables
 
-### Backend (`server/.env`)
+### Backend (`backend/.env`)
 ```env
-DATABASE_URL=postgresql://user:password@host:5432/database
-DATABASE_SSL=true
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/kas
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 JWT_SECRET=your_secure_random_string
 JWT_EXPIRES_IN=8h
 CORS_ORIGIN=http://localhost:5173
-ADMIN_BOOTSTRAP_PASSWORD=your_admin_password
-ADMIN_BOOTSTRAP_EMAIL=admin@example.com
 PORT=5000
 NODE_ENV=development
 ```
 
-### Frontend (`keffi-apartment-suites/.env`)
+### Frontend (`frontend/.env`)
 ```env
 VITE_API_URL=http://localhost:5000/api
 ```
 
 ## 🗄️ Database Setup
 
-### Option 1: Local PostgreSQL
+### Option 1: Local MongoDB
 ```bash
-# Install PostgreSQL
-# Create database
-createdb kas
-
-# Update DATABASE_URL in server/.env
-DATABASE_URL=postgresql://postgres:password@localhost:5432/kas
+# Install MongoDB Community Server, then:
+# Update MONGODB_URI in server/.env
+MONGODB_URI=mongodb://127.0.0.1:27017/kas
 ```
 
-### Option 2: Supabase (Recommended - Free Tier)
-1. Create account at https://supabase.com
-2. Create new project (free tier)
-3. Copy the **Session/Transaction pooler** URI from Project Settings > Database.
-   Do not use the direct `db.<project-ref>.supabase.co` host: it is IPv6-only and
-   unreachable from most hosting providers.
-   ```
-   DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
-   ```
-4. Update `DATABASE_URL` in `server/.env`
-5. Set `DATABASE_SSL=true`
+The database itself does not need to be created up front - MongoDB creates it on
+first write.
 
-The system will automatically create tables and seed initial data on first run.
+### Option 2: MongoDB Atlas (Recommended - Free Tier)
+1. Create account at https://www.mongodb.com/cloud/atlas
+2. Create a new free (M0) cluster
+3. Add a database user, and allow your deployment host under **Network Access**
+4. Copy the SRV connection string from **Connect > Drivers** and append the
+   database name:
+   ```
+   MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/kas?retryWrites=true&w=majority
+   ```
+5. Update `MONGODB_URI` in `server/.env`
+
+The system will automatically create indexes and seed initial data on first run.
 
 ## 🔄 60-Day Data Reset
 
@@ -144,9 +144,12 @@ Requires admin authentication.
 - Set up a cron job to call the reset endpoint every 60 days
 - Use a service like cron-job.org for scheduling
 
-**Option 3: Supabase Project Reset**
-- Delete and recreate Supabase project every 60 days
-- Update `DATABASE_URL` in `.env`
+**Option 3: Command-line Reset**
+```bash
+cd backend
+npm run reset          # Clear all data and reseed
+npm run reset:full     # Drop collections, rebuild indexes, reseed
+```
 
 ## 📦 Available Scripts
 
@@ -161,14 +164,14 @@ npm start           # Start backend with frontend served
 
 ### Backend Commands
 ```bash
-cd server
+cd backend
 npm start           # Start production server
 npm run dev         # Start development server with hot reload
 ```
 
 ### Frontend Commands
 ```bash
-cd keffi-apartment-suites
+cd frontend
 npm run dev         # Start development server
 npm run build       # Build for production
 npm run preview     # Preview production build
@@ -182,8 +185,7 @@ npm run lint        # Run ESLint
 1. **Set production environment variables:**
 ```env
 NODE_ENV=production
-DATABASE_URL=your_production_database_url
-DATABASE_SSL=true
+MONGODB_URI=your_production_mongodb_connection_string
 JWT_SECRET=your_production_jwt_secret
 CORS_ORIGIN=your_production_frontend_url
 ```
@@ -218,7 +220,7 @@ The server will serve both the API and the built frontend.
 
 - Never commit `.env` files to version control
 - Use strong, unique `JWT_SECRET` in production
-- Enable `DATABASE_SSL` for production databases
+- Use a `mongodb+srv://` (TLS) connection string for production databases
 - Keep dependencies updated regularly
 - Use environment-specific `CORS_ORIGIN` settings
 
