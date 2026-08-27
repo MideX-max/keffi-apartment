@@ -10,25 +10,46 @@ export default function FileUpload({
   fileName, 
   onChange, 
   accept = "image/*,application/pdf",
-  isPhoto = false
+  isPhoto = false,
+  kind = "id-document",
+  publicId = "",
+  resourceType = "image"
 }) {
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [error, setError] = useState('');
+
+  // Drop the previous Cloudinary asset so replaced files do not accumulate.
+  const discardPrevious = async () => {
+    if (!publicId) return;
+    try {
+      await api.deleteUpload(publicId, resourceType);
+    } catch (err) {
+      // A file that is already attached to a saved reservation is kept on
+      // purpose; nothing here should block the guest.
+      console.warn('Could not remove the previous upload:', err.message);
+    }
+  };
 
   const handleFile = async (file) => {
     if (!file) return;
     setLoading(true);
+    setError('');
     try {
-      const res = await api.uploadFile(file);
+      const res = await api.uploadFile(file, kind);
+      await discardPrevious();
       onChange({
         url: res.fileUrl,
         name: res.fileName,
         size: res.fileSize,
-        type: res.mimetype
+        type: res.mimetype,
+        publicId: res.publicId,
+        resourceType: res.resourceType
       });
     } catch (err) {
       console.error('File upload error:', err);
+      setError(err.message || 'Upload failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -55,10 +76,12 @@ export default function FileUpload({
     setDragActive(false);
   };
 
-  const handleRemove = (e) => {
+  const handleRemove = async (e) => {
     e.stopPropagation();
     if (fileInputRef.current) fileInputRef.current.value = '';
-    onChange({ url: '', name: '', size: 0, type: '' });
+    await discardPrevious();
+    onChange({ url: '', name: '', size: 0, type: '', publicId: '', resourceType: '' });
+    setError('');
   };
 
   const formatSize = (bytes) => {
@@ -178,6 +201,12 @@ export default function FileUpload({
             </>
           )}
         </div>
+      )}
+
+      {error && (
+        <span className="form-error" style={{ display: 'block', marginTop: '0.5rem' }}>
+          {error}
+        </span>
       )}
     </div>
   );
