@@ -4,7 +4,7 @@ import { useReservations } from '../context/ReservationContext.jsx';
 import { api } from '../services/api.js';
 import FileUpload from '../components/FileUpload.jsx';
 import SignaturePad from '../components/SignaturePad.jsx';
-import { DEFAULT_FLATS, ID_TYPES, formatDatePass } from '../utils/constants.js';
+import { ID_TYPES, formatDatePass } from '../utils/constants.js';
 import confetti from 'canvas-confetti';
 import { 
   User, Calendar, ShieldCheck, PenTool, CheckCircle, ArrowRight, 
@@ -13,7 +13,7 @@ import {
 
 export default function RegistrationPage() {
   const navigate = useNavigate();
-  const { submitReservation, reservations } = useReservations();
+  const { submitReservation, reservations, flats } = useReservations();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -32,9 +32,11 @@ export default function RegistrationPage() {
     airbnbBooking: false,
     airbnbScreenshotUrl: '',
     airbnbScreenshotName: '',
+    airbnbScreenshotPublicId: '',
+    airbnbScreenshotResourceType: '',
 
     // Step 2: Apartment & Dates
-    flat: 'Azalea',
+    flat: '',
     checkInDate: new Date().toISOString().slice(0, 10),
     checkOutDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
     checkInTime: '14:00',
@@ -44,11 +46,15 @@ export default function RegistrationPage() {
     idType: ID_TYPES[0],
     idNumber: '',
     idDocumentUrl: '',
+    idDocumentPublicId: '',
+    idDocumentResourceType: '',
     idDocumentName: '',
     idDocumentSize: 0,
 
     // Step 4: Signature
     signatureUrl: '',
+    signaturePublicId: '',
+    signatureResourceType: '',
     signatureUploadUrl: '',
     signatureUploadName: '',
     signatureMethod: 'draw', // 'draw' or 'upload'
@@ -63,6 +69,8 @@ export default function RegistrationPage() {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
+
+  const selectedFlat = flats.find(flat => flat.name === formData.flat) || null;
 
   // Check flat conflict whenever flat, checkInDate, or checkOutDate change
   useEffect(() => {
@@ -103,7 +111,7 @@ export default function RegistrationPage() {
     }
 
     if (step === 2) {
-      if (!formData.flat.trim()) newErrors.flat = 'Please enter or select a flat/suite.';
+      if (!formData.flat.trim()) newErrors.flat = 'Please select a flat/suite.';
       if (!formData.checkInDate) newErrors.checkInDate = 'Check-in date is required.';
       if (!formData.checkOutDate) newErrors.checkOutDate = 'Check-out date is required.';
       if (formData.checkInDate && formData.checkOutDate && new Date(formData.checkOutDate) <= new Date(formData.checkInDate)) {
@@ -266,7 +274,7 @@ export default function RegistrationPage() {
                   {errors.guestName && <span className="form-error">{errors.guestName}</span>}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
                   <div className="form-group">
                     <label className="form-label">
                       Phone Number <span className="required">*</span>
@@ -296,7 +304,7 @@ export default function RegistrationPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
                   <div className="form-group">
                     <label className="form-label">
                       Number of Guests in Party (Optional)
@@ -333,7 +341,8 @@ export default function RegistrationPage() {
                       type="checkbox"
                       checked={formData.airbnbBooking}
                       onChange={(e) => handleChange('airbnbBooking', e.target.checked)}
-                      style={{ width: '18px', height: '18px', accentColor: 'var(--brand-black)' }}
+                      className="kas-checkbox"
+                      style={{ accentColor: 'var(--brand-black)' }}
                     />
                     <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--brand-black)' }}>
                       Did you book through Airbnb?
@@ -347,9 +356,14 @@ export default function RegistrationPage() {
                         hint="Upload a screenshot of your Airbnb booking confirmation page (compulsory)"
                         value={formData.airbnbScreenshotUrl}
                         fileName={formData.airbnbScreenshotName}
-                        onChange={({ url, name }) => {
+                        publicId={formData.airbnbScreenshotPublicId}
+                        resourceType={formData.airbnbScreenshotResourceType}
+                        kind="booking"
+                        onChange={({ url, name, publicId, resourceType }) => {
                           handleChange('airbnbScreenshotUrl', url);
                           handleChange('airbnbScreenshotName', name);
+                          handleChange('airbnbScreenshotPublicId', publicId || '');
+                          handleChange('airbnbScreenshotResourceType', resourceType || '');
                         }}
                         required={true}
                         accept="image/*"
@@ -373,49 +387,40 @@ export default function RegistrationPage() {
                       Section 2: Apartment &amp; Stay Duration
                     </h2>
                     <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                      Enter or select the flat/apartment suite name. Two guests cannot have the same flat during the same dates.
+                      Select the flat/apartment suite. Two guests cannot have the same flat during the same dates.
                     </span>
                   </div>
                 </div>
 
-                {/* Flat Name Input with Quick Select */}
+                {/* Flat selector, populated from the flats the backend actually knows about */}
                 <div className="form-group">
                   <label className="form-label">
                     Flat / Apartment Name <span className="required">*</span>
                   </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      className={`form-input ${errors.flat || flatConflict ? 'error' : ''}`}
-                      placeholder="Enter flat name e.g. Azalea, Beaumont, Charleston, Darwin..."
-                      value={formData.flat}
-                      onChange={(e) => handleChange('flat', e.target.value)}
-                    />
-                  </div>
-
-                  {/* Quick Select Preset Flats */}
-                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                      Quick Select (Optional):
-                    </span>
-                    {DEFAULT_FLATS.map(f => (
-                      <button
-                        key={f}
-                        type="button"
-                        onClick={() => handleChange('flat', f)}
-                        className="btn btn-outline btn-sm"
-                        style={{
-                          fontSize: '0.75rem',
-                          padding: '0.2rem 0.55rem',
-                          backgroundColor: formData.flat === f ? 'var(--brand-black)' : 'transparent',
-                          color: formData.flat === f ? 'var(--brand-gold)' : 'inherit',
-                          borderColor: formData.flat === f ? 'var(--brand-black)' : 'var(--border-light)'
-                        }}
-                      >
-                        {f}
-                      </button>
+                  <select
+                    className={`form-select ${errors.flat || flatConflict ? 'error' : ''}`}
+                    value={formData.flat}
+                    onChange={(e) => handleChange('flat', e.target.value)}
+                    disabled={flats.length === 0}
+                  >
+                    <option value="">
+                      {flats.length === 0 ? 'Loading available suites…' : 'Select a suite…'}
+                    </option>
+                    {flats.map(flat => (
+                      <option key={flat.id} value={flat.name}>
+                        {flat.name}
+                        {flat.type ? ` — ${flat.type}` : ''}
+                        {flat.status === 'occupied' ? ' (currently occupied)' : ''}
+                      </option>
                     ))}
-                  </div>
+                  </select>
+
+                  {selectedFlat && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {[selectedFlat.block, selectedFlat.floor].filter(Boolean).join(' • ')}
+                      {selectedFlat.description ? ` — ${selectedFlat.description}` : ''}
+                    </div>
+                  )}
 
                   {flatConflict && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#dc2626', fontSize: '0.8125rem', marginTop: '0.4rem', fontWeight: 600 }}>
@@ -426,7 +431,7 @@ export default function RegistrationPage() {
                   {errors.flat && !flatConflict && <span className="form-error">{errors.flat}</span>}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
                   <div className="form-group">
                     <label className="form-label">
                       Check-in Date <span className="required">*</span>
@@ -454,7 +459,7 @@ export default function RegistrationPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
                   <div className="form-group">
                     <label className="form-label">
                       Check-in Time
@@ -522,7 +527,7 @@ export default function RegistrationPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
                   <div className="form-group">
                     <label className="form-label">
                       Identification Type <span className="required">*</span>
@@ -558,10 +563,15 @@ export default function RegistrationPage() {
                   hint="Upload NIN Slip, International Passport bio-data page, or Driver's License (compulsory)"
                   value={formData.idDocumentUrl}
                   fileName={formData.idDocumentName}
-                  onChange={({ url, name, size }) => {
+                  publicId={formData.idDocumentPublicId}
+                  resourceType={formData.idDocumentResourceType}
+                  kind="id-document"
+                  onChange={({ url, name, size, publicId, resourceType }) => {
                     handleChange('idDocumentUrl', url);
                     handleChange('idDocumentName', name);
                     handleChange('idDocumentSize', size);
+                    handleChange('idDocumentPublicId', publicId || '');
+                    handleChange('idDocumentResourceType', resourceType || '');
                   }}
                   required={true}
                 />
@@ -619,7 +629,11 @@ export default function RegistrationPage() {
                 {formData.signatureMethod === 'draw' ? (
                   <SignaturePad
                     value={formData.signatureUrl}
-                    onChange={(sig) => handleChange('signatureUrl', sig)}
+                    onChange={(sig) => {
+                      handleChange('signatureUrl', sig);
+                      handleChange('signaturePublicId', '');
+                      handleChange('signatureResourceType', '');
+                    }}
                     label="Flat Owner / Guest Representative Signature"
                     required={true}
                   />
@@ -629,11 +643,16 @@ export default function RegistrationPage() {
                     hint="Upload a clear image of your signature"
                     value={formData.signatureUploadUrl}
                     fileName={formData.signatureUploadName}
-                    onChange={({ url, name }) => {
+                    publicId={formData.signaturePublicId}
+                    resourceType={formData.signatureResourceType}
+                    kind="signature"
+                    onChange={({ url, name, publicId, resourceType }) => {
                       handleChange('signatureUploadUrl', url);
                       handleChange('signatureName', name);
                       // Also set signatureUrl for compatibility
                       handleChange('signatureUrl', url);
+                      handleChange('signaturePublicId', publicId || '');
+                      handleChange('signatureResourceType', resourceType || '');
                     }}
                     required={true}
                     accept="image/*"
@@ -662,7 +681,7 @@ export default function RegistrationPage() {
                 </div>
 
                 {/* Summary Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '1.25rem', marginBottom: '1.75rem' }}>
                   
                   {/* Guest Info */}
                   <div style={{ backgroundColor: 'var(--bg-surface)', padding: '1.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
@@ -746,7 +765,8 @@ export default function RegistrationPage() {
                       type="checkbox"
                       checked={formData.confirmedAccuracy}
                       onChange={(e) => handleChange('confirmedAccuracy', e.target.checked)}
-                      style={{ marginTop: '3px', width: '18px', height: '18px', accentColor: 'var(--brand-black)' }}
+                      className="kas-checkbox"
+                      style={{ marginTop: '3px', accentColor: 'var(--brand-black)' }}
                     />
                     <span style={{ fontSize: '0.875rem', color: '#92400e', lineHeight: '1.5' }}>
                       <strong>Declaration:</strong> I hereby certify that the information provided is accurate and that the registered guest(s) will adhere strictly to all estate rules and security regulations of KSA CONCIERGE SERVICES.
@@ -765,7 +785,7 @@ export default function RegistrationPage() {
             )}
 
             {/* Navigation Buttons */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
+            <div className="wizard-nav">
               {currentStep > 1 ? (
                 <button
                   type="button"
