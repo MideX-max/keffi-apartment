@@ -20,25 +20,26 @@ npm start                # Start backend with frontend served
 curl http://localhost:5000/api/health
 
 # Frontend development
-cd keffi-apartment-suites
+cd frontend
 npm run dev
 
 # Backend development
-cd server
+cd backend
 npm run dev
 
 # Linting
-cd keffi-apartment-suites
+cd frontend
 npm run lint
 ```
 
 ## Project Structure
 
-- **Frontend**: React 19 + Vite in `keffi-apartment-suites/`
-- **Backend**: Express.js + PostgreSQL in `server/`
-- **Database**: PostgreSQL (local or Supabase)
+- **Frontend**: React 19 + Vite in `frontend/`
+- **Backend**: Express.js + MongoDB (Mongoose) in `backend/`
+- **Database**: MongoDB (local or MongoDB Atlas)
 - **Authentication**: JWT tokens
-- **File Upload**: Multer with local storage in `server/uploads/`
+- **File Upload**: Multer (memory) → Cloudinary; see `server/services/cloudinary.js`
+- **File Storage**: Cloudinary is the single source of truth for all uploaded images and files
 
 ## Key Features
 
@@ -52,25 +53,34 @@ npm run lint
 ## Environment Variables
 
 ### Required Backend Variables (.env)
-- `DATABASE_URL` - PostgreSQL connection string
+- `MONGODB_URI` - MongoDB connection string
 - `JWT_SECRET` - Secure random string for token signing
 - `CORS_ORIGIN` - Frontend URL for CORS
-- `ADMIN_BOOTSTRAP_PASSWORD` - Initial admin password
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` - file storage
+- `CLOUDINARY_FOLDER` (default `keffi`), `MAX_UPLOAD_MB` (default 10)
 
 ### Frontend Variables (.env)
 - `VITE_API_URL` - Backend API URL
 
 ## Database Schema
 
-Tables are auto-created on first run:
+Collections and indexes are auto-created on first run (see `server/models/`):
 - `admins` - Administrator accounts
 - `flats` - Apartment inventory
 - `reservations` - Guest bookings
 
+Notes on the MongoDB data model:
+- `_id` holds the application-generated string ids (`res-<uuid>`, `flat-1`, `manager-001`)
+- Dates are stored as `YYYY-MM-DD` and times as `HH:MM` strings, which sort chronologically
+- `reservations.flat` references `flats.name`; there is no foreign key, so
+  `storage.assertFlatExists()` validates it and `storage.updateFlat()` cascades renames
+
 ## Important Notes
 
-- Server expects `server/uploads/` directory to exist for file uploads
-- System auto-seeds initial flats and admin user on first run
+- Uploads go straight to Cloudinary; `server/uploads/` is no longer used or served
+- MongoDB stores the Cloudinary `secure_url` plus `publicId`/`resourceType` for cleanup
+- System auto-seeds initial flats and the manager accounts in `server/data/seedData.js` on first run
+- All seeded managers can log in; `/auth/me` and `/auth/settings` act on the JWT holder
 - Data reset available via `POST /api/stats/reset` endpoint
 - JWT tokens expire after 8 hours (configurable)
 - Rate limiting on login: 8 attempts per 15 minutes
