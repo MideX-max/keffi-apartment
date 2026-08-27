@@ -61,7 +61,7 @@ router.post('/', submissionLimiter, asyncHandler(async (req, res) => {
       reservation: redactReservationForPublic(created)
     });
   } catch (error) {
-    const statusCode = error.message.includes('booked') ? 409 : 400;
+    const statusCode = error.status || (error.message.includes('booked') ? 409 : 400);
     return res.status(statusCode).json({ message: error.message || 'Failed to create reservation.' });
   }
 }));
@@ -74,7 +74,7 @@ router.patch('/:id/status', authenticateToken, asyncHandler(async (req, res) => 
     return res.status(400).json({ message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
   }
 
-  const updated = await storage.updateReservationStatus(req.params.id, status, notes);
+  const updated = await storage.updateReservationStatus(req.params.id, status, notes, req.user.id);
   if (!updated) {
     return res.status(404).json({ message: 'Reservation not found.' });
   }
@@ -91,7 +91,7 @@ router.patch('/:id', authenticateToken, asyncHandler(async (req, res) => {
 
     return res.json({ message: 'Reservation updated successfully.', reservation: updated });
   } catch (error) {
-    const statusCode = error.message.includes('booked') ? 409 : 400;
+    const statusCode = error.status || (error.message.includes('booked') ? 409 : 400);
     return res.status(statusCode).json({ message: error.message || 'Failed to update reservation.' });
   }
 }));
