@@ -7,6 +7,7 @@ const ReservationContext = createContext(null);
 export function ReservationProvider({ children }) {
   const { isAuthenticated, token } = useAuth();
   const [reservations, setReservations] = useState([]);
+  const [flats, setFlats] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -35,14 +36,33 @@ export function ReservationProvider({ children }) {
     }
   }, [filters, isAuthenticated, token]);
 
+  // Flats are public, so they load whether or not a manager is signed in. The
+  // backend computes each flat's live occupancy, so this is also what keeps the
+  // dashboard's occupancy view in step with the reservations.
+  const fetchFlats = useCallback(async () => {
+    try {
+      const data = await api.getFlats(token || '');
+      setFlats(data || []);
+      return data;
+    } catch (err) {
+      console.error('Failed to fetch flats:', err);
+      return [];
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchReservations();
   }, [fetchReservations]);
+
+  useEffect(() => {
+    fetchFlats();
+  }, [fetchFlats]);
 
   const submitReservation = async (payload) => {
     setLoading(true);
     try {
       const res = await api.createReservation(payload);
+      await fetchFlats();
       if (isAuthenticated) {
         await fetchReservations();
       }
@@ -54,8 +74,20 @@ export function ReservationProvider({ children }) {
 
   const updateStatus = async (id, status, notes = '') => {
     const res = await api.updateReservationStatus(id, status, notes, token);
-    await fetchReservations();
+    await Promise.all([fetchReservations(), fetchFlats()]);
     return res.reservation;
+  };
+
+  const addFlat = async (flat) => {
+    const created = await api.addFlat(flat, token);
+    await fetchFlats();
+    return created;
+  };
+
+  const updateFlat = async (id, updates) => {
+    const updated = await api.updateFlat(id, updates, token);
+    await Promise.all([fetchFlats(), fetchReservations()]);
+    return updated;
   };
 
   const getReservationById = async (idOrPassId) => {
@@ -65,13 +97,18 @@ export function ReservationProvider({ children }) {
   return (
     <ReservationContext.Provider value={{
       reservations,
+      flats,
+      flatNames: flats.map(flat => flat.name),
       stats,
       loading,
       filters,
       setFilters,
       fetchReservations,
+      fetchFlats,
       submitReservation,
       updateStatus,
+      addFlat,
+      updateFlat,
       getReservationById
     }}>
       {children}
