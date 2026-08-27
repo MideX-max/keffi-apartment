@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "KEFFI APARTMENT SUITES Guest Management & Access Control System",
   "scripts": {
-    "dev": "npm --prefix keffi-apartment-suites run dev",
-    "dev:all": "concurrently -n server,web -c blue,magenta \"npm --prefix server run dev\" \"npm --prefix keffi-apartment-suites run dev\"",
-    "server": "npm --prefix server start",
-    "build": "npm install && npm install --prefix keffi-apartment-suites && npm install --prefix server && npm --prefix keffi-apartment-suites run build",
-    "start": "npm --prefix server start",
-    "lint": "npm --prefix keffi-apartment-suites run lint"
+    "dev": "npm --prefix frontend run dev",
+    "dev:all": "concurrently -n backend,frontend -c blue,magenta \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "server": "npm --prefix backend start",
+    "build": "npm install && npm install --prefix frontend && npm install --prefix backend && npm --prefix frontend run build",
+    "start": "npm --prefix backend start",
+    "lint": "npm --prefix frontend run lint"
   },
   "engines": {
     "node": ">=20.19.0"
