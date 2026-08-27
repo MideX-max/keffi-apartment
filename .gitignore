@@ -32,4 +32,4 @@ dist-ssr/
 *.local
 
 # Uploads (local development)
-server/uploads/
+backend/uploads/
