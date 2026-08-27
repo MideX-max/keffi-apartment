@@ -13,6 +13,10 @@ if (!JWT_SECRET) {
   throw new Error('JWT_SECRET is required. Generate a long random value and set it in server/.env.');
 }
 
+// Compared against when no account matches, so that an unknown email costs the
+// same time as a wrong password and cannot be enumerated.
+const DUMMY_HASH = bcrypt.hashSync('invalid-placeholder-password', 12);
+
 const loginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 8,
@@ -49,14 +53,12 @@ router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Email and password are required.' });
   }
 
-  const admin = await storage.getAdmin();
-  const normalizedEmail = String(email).trim().toLowerCase();
-  const isEmailMatch = admin?.email?.toLowerCase() === normalizedEmail;
+  const admin = await storage.getAdminByEmail(email);
   const isPasswordValid = admin?.passwordHash
     ? await bcrypt.compare(String(password), admin.passwordHash)
-    : false;
+    : await bcrypt.compare(String(password), DUMMY_HASH);
 
-  if (!isEmailMatch || !isPasswordValid) {
+  if (!admin || !isPasswordValid) {
     return res.status(401).json({ message: 'Invalid email or password.' });
   }
 
@@ -74,7 +76,12 @@ router.post('/login', loginLimiter, asyncHandler(async (req, res) => {
 }));
 
 router.get('/me', authenticateToken, asyncHandler(async (req, res) => {
-  const admin = await storage.getAdmin();
+  const admin = await storage.getAdminById(req.user.id);
+
+  if (!admin) {
+    return res.status(404).json({ message: 'Administrator account no longer exists.' });
+  }
+
   return res.json(publicAdmin(admin));
 }));
 
@@ -90,7 +97,12 @@ router.put('/settings', authenticateToken, asyncHandler(async (req, res) => {
     delete updates.newPassword;
   }
 
-  const updatedAdmin = await storage.updateAdmin(updates);
+  const updatedAdmin = await storage.updateAdmin(req.user.id, updates);
+
+  if (!updatedAdmin) {
+    return res.status(404).json({ message: 'Administrator account no longer exists.' });
+  }
+
   return res.json({ message: 'Settings updated successfully', admin: publicAdmin(updatedAdmin) });
 }));
 
