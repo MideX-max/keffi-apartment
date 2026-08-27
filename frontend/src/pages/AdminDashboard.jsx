@@ -6,7 +6,7 @@ import Logo from '../components/Logo.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import ReservationModal from '../components/ReservationModal.jsx';
 import SignaturePad from '../components/SignaturePad.jsx';
-import { DEFAULT_FLATS, formatDatePass } from '../utils/constants.js';
+import { formatDatePass } from '../utils/constants.js';
 import { 
   LayoutDashboard, Users, Calendar, AlertTriangle, QrCode, 
   Building2, History, Settings, LogOut, Search, Filter, Eye, 
@@ -14,12 +14,19 @@ import {
   Sliders, UserCheck, Phone, Mail, Check, Menu, X, Save
 } from 'lucide-react';
 
+// Mirrors the status vocabulary returned by GET /api/flats.
+const FLAT_OCCUPANCY = {
+  occupied: { label: 'Occupied', badge: 'badge-approved', accent: '#10b981' },
+  reserved: { label: 'Reserved', badge: 'badge-upcoming', accent: '#f59e0b' },
+  available: { label: 'Available', badge: 'badge-expired', accent: '#cbd5e1' }
+};
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { user, logout, isAuthenticated, updateProfile, defaultSignature } = useAuth();
   const { 
-    reservations, stats, loading, filters, setFilters, 
-    fetchReservations, updateStatus 
+    reservations, flats, stats, loading, filters, setFilters, 
+    fetchReservations, updateStatus, addFlat 
   } = useReservations();
 
   const [activeTab, setActiveTab] = useState('overview'); // overview, reservations, pending, guests, flats, history, settings
@@ -38,12 +45,36 @@ export default function AdminDashboard() {
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
+  // Add-flat form state
+  const [showAddFlat, setShowAddFlat] = useState(false);
+  const [savingFlat, setSavingFlat] = useState(false);
+  const [flatForm, setFlatForm] = useState({ name: '', block: '', floor: '', type: '', description: '' });
+
   // Protect route
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
     }
   }, [isAuthenticated, navigate]);
+
+  // While the mobile drawer is open, close it on Escape and keep the page
+  // behind it from scrolling.
+  useEffect(() => {
+    if (!mobileSidebarOpen) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setMobileSidebarOpen(false);
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileSidebarOpen]);
 
   useEffect(() => {
     if (!user) return;
@@ -68,6 +99,21 @@ export default function AdminDashboard() {
       showToast(`Reservation status updated to "${status}".`);
     } catch {
       showToast('Error updating status.');
+    }
+  };
+
+  const handleAddFlat = async (e) => {
+    e.preventDefault();
+    setSavingFlat(true);
+    try {
+      const created = await addFlat(flatForm);
+      setFlatForm({ name: '', block: '', floor: '', type: '', description: '' });
+      setShowAddFlat(false);
+      showToast(`Flat "${created.name}" added successfully.`);
+    } catch (err) {
+      showToast(err.message || 'Error adding flat.');
+    } finally {
+      setSavingFlat(false);
     }
   };
 
@@ -127,13 +173,17 @@ export default function AdminDashboard() {
       {/* Sidebar Overlay for Mobile */}
       {mobileSidebarOpen && (
         <div
-          className="admin-sidebar-overlay"
+          className="admin-sidebar-overlay open"
           onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* 1. Sidebar */}
-      <aside className={`admin-sidebar ${mobileSidebarOpen ? 'open' : ''}`}>
+      <aside
+        id="admin-sidebar"
+        className={`admin-sidebar ${mobileSidebarOpen ? 'open' : ''}`}
+      >
         
         {/* Header */}
         <div className="admin-sidebar-header">
@@ -236,16 +286,18 @@ export default function AdminDashboard() {
         
         {/* Top bar */}
         <header className="admin-topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="admin-topbar-lead">
             <button
               className="mobile-nav-toggle"
               onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-              style={{ display: 'block', marginRight: '0.5rem' }}
+              aria-label={mobileSidebarOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileSidebarOpen}
+              aria-controls="admin-sidebar"
             >
               {mobileSidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
-            <div>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-black)' }}>
+            <div className="admin-topbar-heading">
+              <h1>
                 {activeTab === 'overview' && 'Estate Overview & Statistics'}
                 {activeTab === 'reservations' && 'All Guest Reservations'}
                 {activeTab === 'pending' && 'Flagged Reservations Requiring Review'}
@@ -254,13 +306,11 @@ export default function AdminDashboard() {
                 {activeTab === 'history' && 'Past & Expired Reservations'}
                 {activeTab === 'settings' && 'Facility Manager Profile & Signature'}
               </h1>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                KEFFI APARTMENT SUITES • Internal Access Control System
-              </span>
+              <span>KEFFI APARTMENT SUITES &bull; Internal Access Control System</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="admin-topbar-actions">
             <button
               onClick={async () => {
                 await fetchReservations();
@@ -270,14 +320,15 @@ export default function AdminDashboard() {
               title="Refresh Data"
             >
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              Refresh
+              <span className="btn-label">Refresh</span>
             </button>
             <button
               onClick={() => navigate('/register')}
               className="btn btn-primary btn-sm"
             >
               <Plus size={15} />
-              Register New Guest
+              <span className="btn-label">Register New Guest</span>
+              <span className="btn-label-short">New Guest</span>
             </button>
           </div>
         </header>
@@ -358,8 +409,8 @@ export default function AdminDashboard() {
                     style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem' }}
                   >
                     <option value="All">All Flats</option>
-                    {DEFAULT_FLATS.map(f => (
-                      <option key={f} value={f}>{f}</option>
+                    {flats.map(f => (
+                      <option key={f.id} value={f.name}>{f.name}</option>
                     ))}
                   </select>
 
@@ -539,7 +590,7 @@ export default function AdminDashboard() {
 
           {/* ================= TAB 3: GUESTS DIRECTORY ================= */}
           {activeTab === 'guests' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: '1.25rem' }}>
               {reservations.map((res) => (
                 <div key={res.id} className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <div>
@@ -601,60 +652,145 @@ export default function AdminDashboard() {
           {/* ================= TAB 4: FLATS & OCCUPANCY ================= */}
           {activeTab === 'flats' && (
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-                {DEFAULT_FLATS.map((flatName) => {
-                  const currentRes = reservations.find(r => r.flat === flatName && (r.status === 'Active' || r.status === 'Approved'));
-                  const isOccupied = Boolean(currentRes);
-
-                  return (
-                    <div key={flatName} className="card" style={{ padding: '1.75rem', borderLeft: `5px solid ${isOccupied ? '#10b981' : '#cbd5e1'}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-black)' }}>
-                          {flatName}
-                        </h3>
-                        <span className={`badge ${isOccupied ? 'badge-approved' : 'badge-expired'}`}>
-                          {isOccupied ? 'Occupied' : 'Available'}
-                        </span>
-                      </div>
-
-                      {isOccupied ? (
-                        <div style={{ backgroundColor: 'var(--bg-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>CURRENT GUEST</span>
-                          <strong style={{ fontSize: '1rem', color: 'var(--brand-black)', display: 'block', marginBottom: '0.35rem' }}>
-                            {currentRes.guestName}
-                          </strong>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-sub)' }}>
-                            Stay: {formatDatePass(currentRes.checkInDate)} &rarr; {formatDatePass(currentRes.checkOutDate)}
-                          </span>
-                          <div style={{ marginTop: '0.75rem' }}>
-                            <button
-                              onClick={() => setSelectedReservation(currentRes)}
-                              className="btn btn-outline btn-sm"
-                              style={{ width: '100%', fontSize: '0.75rem' }}
-                            >
-                              Manage Active Guest
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ padding: '1.25rem 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                          Unit ready for new guest allocation. No active pass registered.
-                          <div style={{ marginTop: '1rem' }}>
-                            <button
-                              onClick={() => navigate('/register')}
-                              className="btn btn-outline-gold btn-sm"
-                              style={{ width: '100%' }}
-                            >
-                              <Plus size={14} />
-                              Assign Guest to {flatName}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                  Occupancy is calculated by the server from live reservation dates.
+                </span>
+                <button
+                  onClick={() => setShowAddFlat(prev => !prev)}
+                  className="btn btn-outline-gold btn-sm"
+                >
+                  {showAddFlat ? <X size={14} /> : <Plus size={14} />}
+                  {showAddFlat ? 'Cancel' : 'Add New Flat'}
+                </button>
               </div>
+
+              {showAddFlat && (
+                <form onSubmit={handleAddFlat} className="card" style={{ padding: '1.75rem', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '1.25rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Flat Name <span className="required">*</span></label>
+                      <input
+                        className="form-input"
+                        value={flatForm.name}
+                        onChange={(e) => setFlatForm(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="e.g. Everest"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Block</label>
+                      <input
+                        className="form-input"
+                        value={flatForm.block}
+                        onChange={(e) => setFlatForm(prev => ({ ...prev, block: e.target.value }))}
+                        placeholder="Main Building"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Floor</label>
+                      <input
+                        className="form-input"
+                        value={flatForm.floor}
+                        onChange={(e) => setFlatForm(prev => ({ ...prev, floor: e.target.value }))}
+                        placeholder="1st Floor"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Suite Type</label>
+                      <input
+                        className="form-input"
+                        value={flatForm.type}
+                        onChange={(e) => setFlatForm(prev => ({ ...prev, type: e.target.value }))}
+                        placeholder="Standard Suite"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Description</label>
+                    <input
+                      className="form-input"
+                      value={flatForm.description}
+                      onChange={(e) => setFlatForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Short description shown to guests during registration."
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={savingFlat}>
+                    <Save size={14} />
+                    {savingFlat ? 'Saving…' : 'Create Flat'}
+                  </button>
+                </form>
+              )}
+
+              {flats.length === 0 ? (
+                <div className="card" style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No flats registered yet. Use &ldquo;Add New Flat&rdquo; to create the first suite.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: '1.5rem' }}>
+                  {flats.map((flat) => {
+                    const occupancy = FLAT_OCCUPANCY[flat.status] || FLAT_OCCUPANCY.available;
+                    const currentRes = flat.currentPassId
+                      ? reservations.find(r => r.passId === flat.currentPassId)
+                      : null;
+
+                    return (
+                      <div key={flat.id} className="card" style={{ padding: '1.75rem', borderLeft: `5px solid ${occupancy.accent}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--brand-black)' }}>
+                            {flat.name}
+                          </h3>
+                          <span className={`badge ${occupancy.badge}`}>{occupancy.label}</span>
+                        </div>
+
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                          {[flat.block, flat.floor, flat.type].filter(Boolean).join(' • ')}
+                        </div>
+
+                        {flat.currentGuest ? (
+                          <div style={{ backgroundColor: 'var(--bg-surface)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>
+                              {flat.status === 'reserved' ? 'UPCOMING GUEST' : 'CURRENT GUEST'}
+                            </span>
+                            <strong style={{ fontSize: '1rem', color: 'var(--brand-black)', display: 'block', marginBottom: '0.35rem' }}>
+                              {flat.currentGuest}
+                            </strong>
+                            {currentRes && (
+                              <span style={{ fontSize: '0.8rem', color: 'var(--text-sub)' }}>
+                                Stay: {formatDatePass(currentRes.checkInDate)} &rarr; {formatDatePass(currentRes.checkOutDate)}
+                              </span>
+                            )}
+                            <div style={{ marginTop: '0.75rem' }}>
+                              <button
+                                onClick={() => currentRes && setSelectedReservation(currentRes)}
+                                className="btn btn-outline btn-sm"
+                                style={{ width: '100%', fontSize: '0.75rem' }}
+                                disabled={!currentRes}
+                              >
+                                {currentRes ? 'Manage Guest Pass' : flat.currentPassId}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ padding: '1.25rem 0', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                            {flat.description || 'Unit ready for new guest allocation. No active pass registered.'}
+                            <div style={{ marginTop: '1rem' }}>
+                              <button
+                                onClick={() => navigate('/register')}
+                                className="btn btn-outline-gold btn-sm"
+                                style={{ width: '100%' }}
+                              >
+                                <Plus size={14} />
+                                Assign Guest to {flat.name}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -675,7 +811,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <form onSubmit={handleSaveSettings}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '1.25rem' }}>
                     <div className="form-group">
                       <label className="form-label">Manager Full Name</label>
                       <input
@@ -697,7 +833,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '1.25rem' }}>
                     <div className="form-group">
                       <label className="form-label">Manager Email</label>
                       <input
