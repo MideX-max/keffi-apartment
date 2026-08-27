@@ -5,21 +5,20 @@ async function completeReset() {
   try {
     console.log('Starting complete database reset...');
     await storage.init();
-    
-    // Drop and recreate tables
-    console.log('Dropping tables...');
-    await storage.pool.query('DROP TABLE IF EXISTS reservations CASCADE');
-    await storage.pool.query('DROP TABLE IF EXISTS flats CASCADE');
-    await storage.pool.query('DROP TABLE IF EXISTS admins CASCADE');
-    
-    console.log('Recreating tables...');
+
+    // Drop and recreate collections
+    console.log('Dropping collections...');
+    await storage.dropAllTables();
+
+    console.log('Recreating indexes...');
     await storage.migrate();
-    
+
     console.log('Seeding data...');
     await storage.seedFlats();
     await storage.seedAdmin();
-    
+
     console.log('Complete reset successful!');
+    await storage.close();
     process.exit(0);
   } catch (error) {
     console.error('Complete reset failed:', error.message);

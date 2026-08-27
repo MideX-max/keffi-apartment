@@ -7,6 +7,7 @@ async function resetDatabase() {
     await storage.init();
     const result = await storage.resetAllData();
     console.log('Database reset successful:', result);
+    await storage.close();
     process.exit(0);
   } catch (error) {
     console.error('Database reset failed:', error.message);
