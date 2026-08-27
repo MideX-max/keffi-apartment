@@ -123,8 +123,8 @@ export default function PassPage() {
           gap: '1.5rem'
         }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
-              <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--brand-black)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: 'clamp(1.15rem, 1rem + 1.2vw, 1.45rem)', fontWeight: 800, color: 'var(--brand-black)', minWidth: 0 }}>
                 {isApproved ? 'Reservation Approved & Verified' : (isPending ? 'Reservation Requires Management Review' : `Reservation Status: ${reservation.status}`)}
               </h1>
               <StatusBadge status={reservation.status} size="md" />
@@ -187,7 +187,7 @@ export default function PassPage() {
               <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                 Pass ID: <strong style={{ fontFamily: 'monospace', color: 'var(--brand-black)' }}>{reservation.passId}</strong>
               </span>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <Link to="/register" className="btn btn-outline btn-sm">
                   Register Another Guest
                 </Link>
