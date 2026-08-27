@@ -1108,3 +1108,385 @@
     font-size: 0.9375rem;
   }
 }
+
+/* ==========================================================================
+   Responsive refinements
+   Breakpoints: 1024 laptop · 900 tablet/drawer · 768 tablet · 640 phone
+                480 small phone · 380 very small phone
+   ========================================================================== */
+
+/* --- Admin topbar ------------------------------------------------------- */
+.admin-topbar-lead {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0; /* lets the heading truncate instead of pushing the actions out */
+  flex: 1 1 auto;
+}
+
+.admin-topbar-heading {
+  min-width: 0;
+}
+
+.admin-topbar-heading h1 {
+  font-size: clamp(1rem, 0.85rem + 0.7vw, 1.25rem);
+  font-weight: 800;
+  color: var(--brand-black);
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+
+.admin-topbar-heading span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+.admin-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Two labels per button: the full one, and a short one for narrow screens. */
+.btn-label-short {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  /* The subtitle is decorative; the page title already says where you are. */
+  .admin-topbar-heading span {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-topbar {
+    padding: 0.625rem 0.875rem;
+  }
+  .admin-topbar-heading h1 {
+    /* Two lines max, then ellipsis, so the header can never grow unbounded. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .admin-topbar-actions {
+    gap: 0.5rem;
+  }
+  .admin-topbar-actions .btn-label {
+    display: none;
+  }
+  .admin-topbar-actions .btn-label-short {
+    display: inline;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Below this the title and both buttons cannot share a row legibly. */
+  .admin-topbar-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .admin-topbar-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .admin-topbar-actions .btn-label-short {
+    display: none;
+  }
+  .admin-topbar-actions .btn-label {
+    display: inline;
+  }
+}
+
+/* --- Fluid headings ----------------------------------------------------- */
+/* Replaces the stepped font sizes so text scales continuously rather than
+   jumping at each breakpoint and overflowing in between. */
+.hero-title {
+  font-size: clamp(1.5rem, 1rem + 4.2vw, 3.25rem);
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.hero-subtitle {
+  font-size: clamp(0.9375rem, 0.85rem + 0.6vw, 1.25rem);
+}
+
+.section-title {
+  overflow-wrap: break-word;
+}
+
+/* Long unbroken words (suite names, emails, pass ids) must never push a
+   layout wider than the screen. */
+h1, h2, h3, h4, p, span, td, th, label {
+  overflow-wrap: break-word;
+}
+
+/* --- Tables ------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .kas-table-container {
+    /* `overflow: hidden` on the base rule would clip the scroll area. */
+    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .kas-table-container::after {
+    /* Hairline hint that there is more table to the right. */
+    content: '';
+    position: sticky;
+    right: 0;
+    top: 0;
+    display: block;
+    width: 1.5rem;
+    margin-left: -1.5rem;
+    pointer-events: none;
+  }
+}
+
+/* --- Touch targets ------------------------------------------------------ */
+@media (pointer: coarse) {
+  .btn,
+  .admin-nav-item,
+  .mobile-nav-item,
+  .mobile-nav-toggle {
+    min-height: 44px;
+  }
+  .btn-sm {
+    min-height: 38px;
+  }
+}
+
+/* --- Very small phones (<=380px) ---------------------------------------- */
+@media (max-width: 380px) {
+  .kas-container,
+  .admin-main-view {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .card {
+    padding: 1rem !important;
+  }
+  .btn {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+  .wizard-stepper {
+    gap: 0.5rem;
+  }
+  .step-node {
+    min-width: 56px;
+  }
+  .step-label {
+    font-size: 0.625rem;
+  }
+}
+
+/* --- Respect reduced-motion -------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar,
+  .admin-sidebar-overlay {
+    transition: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .stat-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Official pass card: dotted-line fields ----------------------------- */
+/* The value used to be absolutely positioned, which gave long guest names no
+   width to respect. In normal flow it wraps and the slot grows instead. */
+.pass-line-row {
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  min-width: 0;
+}
+
+.pass-line-slot {
+  flex: 1;
+  min-width: 0;
+  border-bottom: 2px dotted #444444;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pass-line-value {
+  font-weight: 700;
+  color: #000000;
+  text-align: center;
+  max-width: 100%;
+  padding-bottom: 2px;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+.pass-line-dates {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  /* Two date fields cannot share a phone row and stay readable. */
+  .pass-line-dates {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.4rem;
+  }
+  .pass-line-value {
+    font-size: 1.05rem !important;
+  }
+}
+
+@media (max-width: 380px) {
+  /* Label above value: side by side leaves too little room for either. */
+  .pass-line-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.15rem;
+  }
+  .pass-line-slot {
+    margin-left: 0 !important;
+    justify-content: flex-start;
+  }
+  .pass-line-value {
+    text-align: left;
+    font-size: 1rem !important;
+  }
+}
+
+/* --- Official pass card: signature rows --------------------------------- */
+.pass-sig-row {
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.pass-sig-caption {
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #000000;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.pass-sig-slot {
+  flex: 1;
+  /* Without this the slot cannot shrink below the signature image, and the
+     long nowrap caption pushes the whole row past the card edge. */
+  min-width: 0;
+  border-bottom: 2px dotted #444444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.pass-sig-img {
+  /* Cap by the space actually available, not a fixed 240px. */
+  max-width: min(240px, 100%);
+  height: auto;
+}
+
+@media (max-width: 640px) {
+  /* "FACILITY MANAGER'S SIGNATURE:" cannot share a phone row with the line. */
+  .pass-sig-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+  }
+  .pass-sig-caption {
+    white-space: normal;
+    font-size: 0.9rem;
+  }
+  .pass-sig-slot {
+    margin-left: 0 !important;
+  }
+}
+
+/* --- Official pass card: metadata bar ----------------------------------- */
+/* Two `space-between` groups with no wrap: the long monospace pass id and the
+   check-in/out + badge group could not share a phone-width card. */
+.pass-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-top: 1.25rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed #cbd5e1;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.pass-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.pass-meta-id {
+  font-family: monospace;
+  font-weight: 800;
+  color: #1e293b;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .pass-meta-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* --- Registration wizard navigation ------------------------------------- */
+.wizard-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-light);
+}
+
+@media (max-width: 560px) {
+  /* "Back" and "Continue to Next Step" cannot share a phone row; stacking
+     also puts the primary action under the thumb. */
+  .wizard-nav {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .wizard-nav .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* --- Checkboxes --------------------------------------------------------- */
+.kas-checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+@media (pointer: coarse) {
+  /* WCAG 2.5.8 puts the minimum touch target at 24x24 CSS px. */
+  .kas-checkbox {
+    width: 24px;
+    height: 24px;
+  }
+}
