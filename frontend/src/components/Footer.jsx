@@ -8,7 +8,7 @@ export default function Footer() {
   return (
     <footer style={{ backgroundColor: '#111111', color: '#e5e7eb', paddingTop: '4rem', paddingBottom: '2.5rem', borderTop: '4px solid var(--brand-gold)' }}>
       <div className="container">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '3rem', marginBottom: '3.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '3rem', marginBottom: '3.5rem' }}>
           
           {/* Col 1: Brand & Logo */}
           <div>

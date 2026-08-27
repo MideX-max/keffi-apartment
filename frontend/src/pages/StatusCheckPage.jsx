@@ -106,7 +106,7 @@ export default function StatusCheckPage() {
                   <StatusBadge status={result.status} size="lg" />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
                   <div>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>GUEST NAME</span>
                     <strong style={{ fontSize: '1.05rem', color: 'var(--brand-black)' }}>{result.guestName}</strong>

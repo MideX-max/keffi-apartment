@@ -137,7 +137,7 @@ export default function ReservationModal({ reservation, onClose, onUpdateStatus 
                   <User size={16} color="var(--brand-gold-dark)" />
                   Guest Information
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
                   <div>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block' }}>FULL NAME</span>
                     <strong style={{ fontSize: '1rem', color: 'var(--brand-black)' }}>{guestName}</strong>
@@ -163,7 +163,7 @@ export default function ReservationModal({ reservation, onClose, onUpdateStatus 
                   <Calendar size={16} color="var(--brand-gold-dark)" />
                   Stay &amp; Flat Allocation
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '1rem', fontSize: '0.875rem' }}>
                   <div>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block' }}>ASSIGNED FLAT</span>
                     <strong style={{ fontSize: '1.05rem', color: 'var(--brand-black)' }}>{flat}</strong>
@@ -231,7 +231,7 @@ export default function ReservationModal({ reservation, onClose, onUpdateStatus 
               </div>
 
               {/* Signature Inspection */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
                 <div style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1rem', backgroundColor: '#ffffff' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>
                     GUEST / FLAT OWNER SIGNATURE
