@@ -1,16 +1,16 @@
 #!/bin/bash
 set -e
 
-echo "Installing server dependencies..."
-cd server && npm install
+echo "Installing backend dependencies..."
+cd backend && npm install
 cd ..
 
 echo "Installing frontend dependencies..."
-cd keffi-apartment-suites && npm install
+cd frontend && npm install
 cd ..
 
 echo "Building frontend..."
-cd keffi-apartment-suites && npm run build
+cd frontend && npm run build
 cd ..
 
 echo "Build completed successfully!"
