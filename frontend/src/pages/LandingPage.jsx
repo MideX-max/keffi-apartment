@@ -52,7 +52,7 @@ export default function LandingPage() {
           </div>
 
           <p className="hero-subtitle" style={{ margin: '0 auto 2.5rem', maxWidth: '720px' }}>
-            Welcome to the digital guest management portal for KEFFI APARTMENT SUITES. Guests and apartment representatives can register their stay, submit identification, and receive an official verified digital gate pass for estate entry.
+            Welcome to the digital guest management portal for KEFFI APARTMENT SUITES. Apartment managers can register their guest stay, submit identification, and receive an official verified digital gate pass for seamless estate entry.
           </p>
 
           <div className="hero-actions" style={{ justifyContent: 'center', marginBottom: '2.5rem' }}>
@@ -96,7 +96,7 @@ export default function LandingPage() {
                   Look Up Existing Reservation
                 </strong>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Enter your Pass ID (e.g. KAS-2026-0723-01) or Email
+                  Enter your Pass ID (e.g. KAS-2026-0723-01)
                 </span>
               </div>
             </div>
