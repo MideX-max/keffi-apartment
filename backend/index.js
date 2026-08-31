@@ -133,8 +133,30 @@ app.use((err, req, res, next) => {
   });
 });
 
+// For Vercel serverless, we need to initialize storage before handling requests
+let isStorageInitialized = false;
+
+async function ensureStorageInitialized() {
+  if (!isStorageInitialized) {
+    await storage.init();
+    isStorageInitialized = true;
+  }
+}
+
+// Vercel serverless handler
+export default async function handler(req, res) {
+  await ensureStorageInitialized();
+  return app(req, res);
+}
+
+// Local development server
 async function startServer() {
   await storage.init();
+
+  // Only start the server if not running in Vercel serverless environment
+  if (process.env.VERCEL) {
+    return;
+  }
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log('===================================================');
