@@ -56,7 +56,7 @@ export default function LandingPage() {
           </p>
 
           <div className="hero-actions" style={{ justifyContent: 'center', marginBottom: '2.5rem' }}>
-            <Link to="/register" className="btn btn-primary btn-lg">
+            <Link to="/guest-access" className="btn btn-primary btn-lg">
               <UserPlus size={20} />
               Register Guest
             </Link>
@@ -249,7 +249,7 @@ export default function LandingPage() {
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '3rem' }}>
-            <Link to="/register" className="btn btn-primary btn-lg">
+            <Link to="/guest-access" className="btn btn-primary btn-lg">
               Start Guest Registration Now
               <ArrowRight size={18} />
             </Link>

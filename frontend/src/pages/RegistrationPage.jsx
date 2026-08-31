@@ -15,6 +15,14 @@ export default function RegistrationPage() {
   const navigate = useNavigate();
   const { submitReservation, reservations, flats } = useReservations();
 
+  // Check for guest authentication
+  useEffect(() => {
+    const guestAuth = sessionStorage.getItem('guestAuthenticated');
+    if (guestAuth !== 'true') {
+      navigate('/guest-access');
+    }
+  }, [navigate]);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [checkingConflict, setCheckingConflict] = useState(false);

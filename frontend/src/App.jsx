@@ -8,6 +8,7 @@ import Footer from './components/Footer.jsx';
 
 import LandingPage from './pages/LandingPage.jsx';
 import RegistrationPage from './pages/RegistrationPage.jsx';
+import GuestAccessLogin from './pages/GuestAccessLogin.jsx';
 import PassPage from './pages/PassPage.jsx';
 import StatusCheckPage from './pages/StatusCheckPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -26,6 +27,7 @@ function AppLayout() {
       <div style={{ flex: 1 }}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/guest-access" element={<GuestAccessLogin />} />
           <Route path="/register" element={<RegistrationPage />} />
           <Route path="/pass/:passId" element={<PassPage />} />
           <Route path="/status" element={<StatusCheckPage />} />

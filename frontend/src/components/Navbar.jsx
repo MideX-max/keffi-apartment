@@ -10,7 +10,12 @@ export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => {
+    if (path === '/guest-access') {
+      return location.pathname === '/guest-access' || location.pathname === '/register';
+    }
+    return location.pathname === path;
+  };
 
   const handleLogout = () => {
     logout();
@@ -32,7 +37,7 @@ export default function Navbar() {
             <Link to="/" className={`kas-nav-link ${isActive('/') ? 'active' : ''}`}>
               Home
             </Link>
-            <Link to="/register" className={`kas-nav-link ${isActive('/register') ? 'active' : ''}`}>
+            <Link to="/guest-access" className={`kas-nav-link ${isActive('/guest-access') ? 'active' : ''}`}>
               Guest Registration
             </Link>
             <Link to="/status" className={`kas-nav-link ${isActive('/status') ? 'active' : ''}`}>
@@ -60,7 +65,7 @@ export default function Navbar() {
                   <Shield size={16} />
                   Facility Manager
                 </Link>
-                <Link to="/register" className="btn btn-primary btn-sm" style={{ padding: '0.5rem 1.15rem' }}>
+                <Link to="/guest-access" className="btn btn-primary btn-sm" style={{ padding: '0.5rem 1.15rem' }}>
                   <UserPlus size={16} />
                   Register Guest
                 </Link>
@@ -97,8 +102,8 @@ export default function Navbar() {
               Home
             </Link>
             <Link
-              to="/register"
-              className={`kas-nav-link ${isActive('/register') ? 'active' : ''}`}
+              to="/guest-access"
+              className={`kas-nav-link ${isActive('/guest-access') ? 'active' : ''}`}
               onClick={() => setMobileMenuOpen(false)}
               style={{ padding: '0.5rem' }}
             >
@@ -132,7 +137,7 @@ export default function Navbar() {
               ) : (
                 <>
                   <Link
-                    to="/register"
+                    to="/guest-access"
                     className="btn btn-primary"
                     onClick={() => setMobileMenuOpen(false)}
                   >
