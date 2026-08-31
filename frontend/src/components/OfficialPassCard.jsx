@@ -1,8 +1,6 @@
-import React, { forwardRef } from 'react';
-import Logo from './Logo.jsx';
+import { forwardRef } from 'react';
 import StatusBadge from './StatusBadge.jsx';
-import { formatDatePass } from '../utils/constants.js';
-import { BRAND, DEFAULT_MANAGER_SIG } from '../utils/constants.js';
+import { formatDatePass, DEFAULT_MANAGER_SIG } from '../utils/constants.js';
 
 const OfficialPassCard = forwardRef(function OfficialPassCard({ reservation, className = '' }, ref) {
   if (!reservation) {
@@ -23,8 +21,7 @@ const OfficialPassCard = forwardRef(function OfficialPassCard({ reservation, cla
     checkOutTime = "11:00",
     signatureUrl,
     managerSignatureUrl,
-    status = "Approved",
-    createdAt
+    status = "Approved"
   } = reservation;
 
   const isExpired = status?.toLowerCase() === 'expired';

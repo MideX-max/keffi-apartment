@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Logo from '../components/Logo.jsx';
-import { ShieldCheck, Lock, Mail, ArrowRight, KeyRound, AlertCircle, Info } from 'lucide-react';
+import { Lock, Mail, ArrowRight, AlertCircle, Info } from 'lucide-react';
 
 export default function LoginPage() {
   const navigate = useNavigate();

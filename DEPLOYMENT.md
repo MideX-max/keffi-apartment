@@ -40,6 +40,8 @@ CLOUDINARY_FOLDER=keffi
 MAX_UPLOAD_MB=10
 JWT_SECRET=your_secure_random_string_32_chars_minimum
 JWT_EXPIRES_IN=8h
+GUEST_ACCESS_PASSWORD=use_a_long_unique_password_for_apartment_managers
+GUEST_TOKEN_EXPIRES_IN=2h
 CORS_ORIGIN=https://your-frontend-domain.com
 PORT=5000
 ```

@@ -1,6 +1,4 @@
-import React from 'react';
-
-export default function Logo({ className = '', height = 54, showText = true, isWhite = false }) {
+export default function Logo({ className = '', height = 54 }) {
   return (
     <div className={`inline-flex items-center gap-3 select-none ${className}`}>
       <img

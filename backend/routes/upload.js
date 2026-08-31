@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { storage as dataStore } from '../store/storage.js';
-import { authenticateToken } from './auth.js';
+import { authenticateGuestToken, authenticateToken } from './auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
 import {
@@ -73,7 +73,7 @@ const upload = multer({
 
 const router = express.Router();
 
-router.post('/', uploadLimiter, upload.single('file'), asyncHandler(async (req, res) => {
+router.post('/', authenticateGuestToken, uploadLimiter, upload.single('file'), asyncHandler(async (req, res) => {
   if (!isCloudinaryConfigured) {
     return res.status(503).json({ message: 'File storage is not configured on this server.' });
   }

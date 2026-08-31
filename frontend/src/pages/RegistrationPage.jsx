@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useReservations } from '../context/ReservationContext.jsx';
 import { api } from '../services/api.js';
@@ -8,29 +8,20 @@ import { ID_TYPES, formatDatePass } from '../utils/constants.js';
 import confetti from 'canvas-confetti';
 import { 
   User, Calendar, ShieldCheck, PenTool, CheckCircle, ArrowRight, 
-  ArrowLeft, Check, Building, Clock, Users, FileText, AlertCircle, AlertTriangle
+  ArrowLeft, Check, Building, Clock, AlertTriangle
 } from 'lucide-react';
 
 export default function RegistrationPage() {
   const navigate = useNavigate();
-  const { submitReservation, reservations, flats } = useReservations();
-
-  // Check for guest authentication
-  useEffect(() => {
-    const guestAuth = sessionStorage.getItem('guestAuthenticated');
-    if (guestAuth !== 'true') {
-      navigate('/guest-access');
-    }
-  }, [navigate]);
+  const { submitReservation, flats } = useReservations();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const [checkingConflict, setCheckingConflict] = useState(false);
   const [flatConflict, setFlatConflict] = useState(null);
   const [errors, setErrors] = useState({});
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     // Step 1: Guest Details
     guestName: '',
     phone: '',
@@ -69,7 +60,7 @@ export default function RegistrationPage() {
 
     // Step 5: Declaration
     confirmedAccuracy: false
-  });
+  }));
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -86,7 +77,6 @@ export default function RegistrationPage() {
       if (!formData.flat || !formData.checkInDate || !formData.checkOutDate) return;
       if (new Date(formData.checkOutDate) <= new Date(formData.checkInDate)) return;
 
-      setCheckingConflict(true);
       try {
         const res = await api.checkFlatConflict(formData.flat, formData.checkInDate, formData.checkOutDate);
         if (!res.available) {
@@ -96,8 +86,6 @@ export default function RegistrationPage() {
         }
       } catch {
         setFlatConflict(null);
-      } finally {
-        setCheckingConflict(false);
       }
     }
     verifyConflict();
@@ -180,7 +168,9 @@ export default function RegistrationPage() {
           origin: { y: 0.6 },
           colors: ['#F3C428', '#111111', '#B88E12']
         });
-      } catch {}
+      } catch (confettiErr) {
+        console.warn('Confetti animation skipped:', confettiErr);
+      }
 
       navigate(`/pass/${created.passId}`);
     } catch (err) {

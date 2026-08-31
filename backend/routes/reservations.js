@@ -1,6 +1,6 @@
 import express from 'express';
 import { storage, redactReservationForPublic } from '../store/storage.js';
-import { authenticateToken } from './auth.js';
+import { authenticateGuestToken, authenticateToken } from './auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
 
@@ -42,7 +42,7 @@ router.get('/:passId', asyncHandler(async (req, res) => {
   return res.json(redactReservationForPublic(reservation));
 }));
 
-router.post('/', submissionLimiter, asyncHandler(async (req, res) => {
+router.post('/', authenticateGuestToken, submissionLimiter, asyncHandler(async (req, res) => {
   const payload = req.body;
 
   if (!payload.guestName || !payload.flat || !payload.phone || !payload.checkInDate || !payload.checkOutDate) {

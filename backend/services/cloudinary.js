@@ -1,5 +1,13 @@
-import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
 
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
 const API_KEY = process.env.CLOUDINARY_API_KEY;
@@ -31,7 +39,7 @@ if (isCloudinaryConfigured) {
 } else {
   console.warn(
     'Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and ' +
-    'CLOUDINARY_API_SECRET in server/.env - uploads will be rejected until you do.'
+    'CLOUDINARY_API_SECRET in backend/.env - uploads will be rejected until you do.'
   );
 }
 

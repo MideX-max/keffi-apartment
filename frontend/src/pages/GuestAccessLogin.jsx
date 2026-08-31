@@ -1,23 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo.jsx';
 import { Lock, ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
+import { api } from '../services/api.js';
 
 export default function GuestAccessLogin() {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const CENTRALIZED_PASSWORD = import.meta.env.VITE_GUEST_ACCESS_PASSWORD || 'keffiapartment';
-
-  useEffect(() => {
-    // Check if user is already authenticated for guest access
-    const guestAuth = sessionStorage.getItem('guestAuthenticated');
-    if (guestAuth === 'true') {
-      navigate('/register');
-    }
-  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,19 +20,17 @@ export default function GuestAccessLogin() {
     setLoading(true);
     setError('');
     
-    // Simulate a brief delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    if (password === CENTRALIZED_PASSWORD) {
-      // Set authentication in session storage
-      sessionStorage.setItem('guestAuthenticated', 'true');
+    try {
+      const access = await api.requestGuestAccess(password);
+      sessionStorage.setItem('kas_guest_access_token', access.token);
+      sessionStorage.setItem('kas_guest_access_expires_at', access.expiresAt || '');
       navigate('/register');
-    } else {
-      setError('Incorrect password. Please try again.');
+    } catch (err) {
+      setError(err.message || 'Could not verify the access password. Please try again.');
       setPassword('');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (

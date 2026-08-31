@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { UploadCloud, FileText, Image as ImageIcon, CheckCircle, X, RefreshCw } from 'lucide-react';
 import { api } from '../services/api.js';
 
@@ -82,13 +82,6 @@ export default function FileUpload({
     await discardPrevious();
     onChange({ url: '', name: '', size: 0, type: '', publicId: '', resourceType: '' });
     setError('');
-  };
-
-  const formatSize = (bytes) => {
-    if (!bytes) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (

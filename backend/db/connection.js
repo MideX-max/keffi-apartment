@@ -1,11 +1,18 @@
-import 'dotenv/config';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
   throw new Error(
-    'MONGODB_URI is required. Set it in server/.env, e.g. ' +
+    'MONGODB_URI is required. Set it in backend/.env, e.g. ' +
     'mongodb://127.0.0.1:27017/kas or a MongoDB Atlas SRV connection string.'
   );
 }

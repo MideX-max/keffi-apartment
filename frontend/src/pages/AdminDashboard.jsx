@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useReservations } from '../context/ReservationContext.jsx';
@@ -8,10 +8,10 @@ import ReservationModal from '../components/ReservationModal.jsx';
 import SignaturePad from '../components/SignaturePad.jsx';
 import { formatDatePass } from '../utils/constants.js';
 import { 
-  LayoutDashboard, Users, Calendar, AlertTriangle, QrCode, 
+  LayoutDashboard, Users, Calendar, AlertTriangle, 
   Building2, History, Settings, LogOut, Search, Filter, Eye, 
-  CheckCircle, XCircle, Download, Plus, RefreshCw, ShieldCheck, 
-  Sliders, UserCheck, Phone, Mail, Check, Menu, X, Save
+  CheckCircle, Download, Plus, RefreshCw, ShieldCheck, 
+  Phone, Mail, Menu, X, Save
 } from 'lucide-react';
 
 // Mirrors the status vocabulary returned by GET /api/flats.
@@ -35,14 +35,14 @@ export default function AdminDashboard() {
   const [toastMessage, setToastMessage] = useState('');
 
   // Settings State
-  const [profileForm, setProfileForm] = useState({
+  const [profileForm, setProfileForm] = useState(() => ({
     name: user?.name || 'Engr. David Okon',
     role: user?.role || 'Chief Facility Manager',
     email: user?.email || 'manager@keffiapartments.ng',
     phone: user?.phone || '+234 803 000 1122',
     estateName: user?.estateName || 'KEFFI APARTMENT SUITES',
     defaultSignature: defaultSignature
-  });
+  }));
   const [savingSettings, setSavingSettings] = useState(false);
 
   // Add-flat form state
@@ -75,18 +75,6 @@ export default function AdminDashboard() {
       document.body.style.overflow = previousOverflow;
     };
   }, [mobileSidebarOpen]);
-
-  useEffect(() => {
-    if (!user) return;
-    setProfileForm({
-      name: user.name || '',
-      role: user.role || '',
-      email: user.email || '',
-      phone: user.phone || '',
-      estateName: user.estateName || 'KEFFI APARTMENT SUITES',
-      defaultSignature
-    });
-  }, [defaultSignature, user]);
 
   const showToast = (msg) => {
     setToastMessage(msg);

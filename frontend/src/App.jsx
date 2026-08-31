@@ -1,5 +1,4 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ReservationProvider } from './context/ReservationContext.jsx';
 
@@ -16,6 +15,16 @@ import AdminDashboard from './pages/AdminDashboard.jsx';
 
 import './App.css';
 
+function GuestProtectedRoute({ children }) {
+  // Token validity and expiry are enforced by the API. This synchronous check
+  // prevents unauthenticated visitors from rendering the registration form.
+  if (!sessionStorage.getItem('kas_guest_access_token')) {
+    return <Navigate to="/guest-access" replace />;
+  }
+
+  return children;
+}
+
 function AppLayout() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
@@ -28,7 +37,7 @@ function AppLayout() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/guest-access" element={<GuestAccessLogin />} />
-          <Route path="/register" element={<RegistrationPage />} />
+          <Route path="/register" element={<GuestProtectedRoute><RegistrationPage /></GuestProtectedRoute>} />
           <Route path="/pass/:passId" element={<PassPage />} />
           <Route path="/status" element={<StatusCheckPage />} />
           <Route path="/login" element={<LoginPage />} />

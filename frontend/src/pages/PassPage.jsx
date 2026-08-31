@@ -1,24 +1,21 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { useReservations } from '../context/ReservationContext.jsx';
 import OfficialPassCard from '../components/OfficialPassCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { generatePassPDF } from '../utils/pdfGenerator.js';
 import { formatDatePass } from '../utils/constants.js';
 import { 
-  Download, Printer, Share2, Check, ArrowLeft, ShieldCheck, 
-  AlertTriangle, Copy, ExternalLink, Calendar, MapPin, Building 
+  Download, Printer, ArrowLeft, ShieldCheck, AlertTriangle
 } from 'lucide-react';
 
 export default function PassPage() {
   const { passId } = useParams();
-  const navigate = useNavigate();
   const { getReservationById } = useReservations();
 
   const [reservation, setReservation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const passCardRef = useRef(null);
 
@@ -45,6 +42,7 @@ export default function PassPage() {
       const filename = `KEFFI_APARTMENT_PASS_${reservation.passId}.pdf`;
       await generatePassPDF('kas-official-guest-pass', filename);
     } catch (err) {
+      console.error('Download error:', err);
       alert('Failed to generate PDF. Please try using the Print button.');
     } finally {
       setDownloading(false);

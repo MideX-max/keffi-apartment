@@ -1,15 +1,15 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useReservations } from '../context/ReservationContext.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { formatDatePass } from '../utils/constants.js';
-import { Search, ShieldCheck, ArrowRight, Calendar, User, MapPin, AlertCircle, FileText } from 'lucide-react';
+import { Search, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function StatusCheckPage() {
   const [searchParams] = useSearchParams();
   const { getReservationById } = useReservations();
 
-  const [query, setQuery] = useState(searchParams.get('q') || '');
+  const [query, setQuery] = useState(() => searchParams.get('q') || '');
   const [result, setResult] = useState(null);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -31,6 +31,7 @@ export default function StatusCheckPage() {
       const found = await getReservationById(lookup);
       setResult(found);
     } catch (err) {
+      console.error('Search error:', err);
       setError('Failed to look up reservation. Please try again.');
     } finally {
       setLoading(false);
@@ -39,11 +40,34 @@ export default function StatusCheckPage() {
 
   useEffect(() => {
     const q = searchParams.get('q');
-    if (q) {
-      setQuery(q);
-      handleSearch(null, q);
+    if (!q) return;
+
+    let ignore = false;
+    async function executeSearch() {
+      const lookup = q.trim();
+      if (!lookup) return;
+
+      setLoading(true);
+      setError('');
+      setSearched(true);
+
+      try {
+        const found = await getReservationById(lookup);
+        if (!ignore) setResult(found);
+      } catch (searchErr) {
+        console.error('Lookup error:', searchErr);
+        if (!ignore) setError('Failed to look up reservation. Please try again.');
+      } finally {
+        if (!ignore) setLoading(false);
+      }
     }
-  }, [handleSearch, searchParams]);
+
+    executeSearch();
+
+    return () => {
+      ignore = true;
+    };
+  }, [getReservationById, searchParams]);
 
   return (
     <div style={{ backgroundColor: 'var(--bg-surface)', minHeight: '100vh', padding: '4rem 0 6rem' }}>

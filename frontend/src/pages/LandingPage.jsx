@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo.jsx';
 import { 
   UserPlus, Search, ShieldCheck, FileCheck, QrCode, 
-  ArrowRight, Building2, CheckCircle2, Lock, Clock, HelpCircle, FileText
+  ArrowRight, Building2, CheckCircle2, Lock
 } from 'lucide-react';
-import { BRAND } from '../utils/constants.js';
 
 export default function LandingPage() {
   const navigate = useNavigate();

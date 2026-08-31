@@ -1,14 +1,15 @@
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { RotateCcw, PenTool, Check, ShieldCheck } from 'lucide-react';
 import { DEFAULT_MANAGER_SIG } from '../utils/constants.js';
 
 export default function SignaturePad({ value, onChange, label = "Digital Signature", required = true }) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [hasDrawn, setHasDrawn] = useState(false);
-  const [usingDefault, setUsingDefault] = useState(false);
 
-  // Initialize canvas
+  const isUsingDefault = value === DEFAULT_MANAGER_SIG;
+  const hasSignature = Boolean(value);
+
+  // Initialize and synchronize canvas DOM
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -27,17 +28,18 @@ export default function SignaturePad({ value, onChange, label = "Digital Signatu
     ctx.strokeStyle = '#111111';
     ctx.lineWidth = 2.2;
 
-    // If initial value exists and is an image
-    if (value && value.startsWith('data:')) {
+    if (value && (value.startsWith('data:') || value.startsWith('http'))) {
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 20, 15, rect.width - 40, 110);
-        setHasDrawn(true);
+        ctx.drawImage(img, 20, 15, (rect.width || 450) - 40, 110);
       };
       img.src = value;
+    } else if (!value) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
-  }, []);
+  }, [value]);
 
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
@@ -59,7 +61,6 @@ export default function SignaturePad({ value, onChange, label = "Digital Signatu
     ctx.beginPath();
     ctx.moveTo(x, y);
     setIsDrawing(true);
-    setUsingDefault(false);
   };
 
   const draw = (e) => {
@@ -71,7 +72,6 @@ export default function SignaturePad({ value, onChange, label = "Digital Signatu
 
     ctx.lineTo(x, y);
     ctx.stroke();
-    setHasDrawn(true);
   };
 
   const stopDrawing = () => {
@@ -89,29 +89,15 @@ export default function SignaturePad({ value, onChange, label = "Digital Signatu
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setHasDrawn(false);
-    setUsingDefault(false);
     if (onChange) {
       onChange('');
     }
   };
 
   const handleUseDefault = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    const img = new Image();
-    img.onload = () => {
-      ctx.drawImage(img, 30, 20, 260, 80);
-      setHasDrawn(true);
-      setUsingDefault(true);
-      if (onChange) {
-        onChange(DEFAULT_MANAGER_SIG);
-      }
-    };
-    img.src = DEFAULT_MANAGER_SIG;
+    if (onChange) {
+      onChange(DEFAULT_MANAGER_SIG);
+    }
   };
 
   return (
@@ -149,7 +135,7 @@ export default function SignaturePad({ value, onChange, label = "Digital Signatu
       <div style={{
         position: 'relative',
         backgroundColor: '#FFFFFF',
-        border: hasDrawn ? '2px solid var(--brand-black)' : '2px dashed var(--border-medium)',
+        border: hasSignature ? '2px solid var(--brand-black)' : '2px dashed var(--border-medium)',
         borderRadius: 'var(--radius-md)',
         overflow: 'hidden',
         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
@@ -176,7 +162,7 @@ export default function SignaturePad({ value, onChange, label = "Digital Signatu
           pointerEvents: 'none'
         }} />
 
-        {!hasDrawn && (
+        {!hasSignature && (
           <div style={{
             position: 'absolute',
             inset: 0,
@@ -191,7 +177,7 @@ export default function SignaturePad({ value, onChange, label = "Digital Signatu
           </div>
         )}
 
-        {usingDefault && (
+        {isUsingDefault && (
           <div style={{
             position: 'absolute',
             top: '8px',

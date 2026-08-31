@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Logo from './Logo.jsx';
-import { Menu, X, Shield, UserPlus, Search, LayoutDashboard, LogOut } from 'lucide-react';
+import { Menu, X, Shield, UserPlus, LayoutDashboard, LogOut } from 'lucide-react';
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path) => {

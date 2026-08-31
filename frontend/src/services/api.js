@@ -5,6 +5,11 @@ function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function guestAuthHeaders() {
+  const token = sessionStorage.getItem('kas_guest_access_token');
+  return authHeaders(token);
+}
+
 function normalizeAssetUrl(url) {
   if (!url || url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
     return url || '';
@@ -76,7 +81,7 @@ export const api = {
   async createReservation(payload) {
     const data = await requestJson('/reservations', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...guestAuthHeaders() },
       body: JSON.stringify(payload)
     });
 
@@ -151,6 +156,14 @@ export const api = {
     });
   },
 
+  async requestGuestAccess(password) {
+    return requestJson('/auth/guest-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+  },
+
   async getMe(token = '') {
     return requestJson('/auth/me', {
       headers: authHeaders(token)
@@ -178,6 +191,7 @@ export const api = {
 
     const data = await requestJson('/upload', {
       method: 'POST',
+      headers: guestAuthHeaders(),
       body: formData
     });
 

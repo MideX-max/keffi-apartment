@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import StatusBadge from './StatusBadge.jsx';
-import { formatDatePass, formatDateTime } from '../utils/constants.js';
+import { formatDatePass } from '../utils/constants.js';
 import { 
-  X, CheckCircle, XCircle, AlertTriangle, FileText, User, Calendar, 
-  MapPin, Phone, Mail, Shield, Download, Eye, ExternalLink, PenTool
+  X, CheckCircle, XCircle, AlertTriangle, User, Calendar, 
+  Shield, Download, ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,7 +32,6 @@ export default function ReservationModal({ reservation, onClose, onUpdateStatus 
     idNumber,
     idDocumentName,
     idDocumentUrl,
-    photoUrl,
     signatureUrl,
     managerSignatureUrl,
     status,

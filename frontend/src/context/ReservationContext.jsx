@@ -51,12 +51,53 @@ export function ReservationProvider({ children }) {
   }, [token]);
 
   useEffect(() => {
-    fetchReservations();
-  }, [fetchReservations]);
+    let ignore = false;
+
+    async function loadReservations() {
+      if (!isAuthenticated || !token) {
+        setReservations([]);
+        setStats(null);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const data = await api.getReservations(filters, token);
+        if (!ignore) setReservations(data || []);
+        const statsData = await api.getStats(token);
+        if (!ignore) setStats(statsData);
+      } catch (err) {
+        console.error('Failed to fetch reservations:', err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+
+    loadReservations();
+
+    return () => {
+      ignore = true;
+    };
+  }, [filters, isAuthenticated, token]);
 
   useEffect(() => {
-    fetchFlats();
-  }, [fetchFlats]);
+    let ignore = false;
+
+    async function loadFlats() {
+      try {
+        const data = await api.getFlats(token || '');
+        if (!ignore) setFlats(data || []);
+      } catch (err) {
+        console.error('Failed to fetch flats:', err);
+      }
+    }
+
+    loadFlats();
+
+    return () => {
+      ignore = true;
+    };
+  }, [token]);
 
   const submitReservation = async (payload) => {
     setLoading(true);

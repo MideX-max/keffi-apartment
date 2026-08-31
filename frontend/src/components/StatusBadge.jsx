@@ -1,5 +1,4 @@
-import React from 'react';
-import { CheckCircle2, Clock, AlertTriangle, XCircle, CheckCircle, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, XCircle, CheckCircle } from 'lucide-react';
 
 export default function StatusBadge({ status, size = 'md' }) {
   const normalized = (status || 'Pending Review').toLowerCase();

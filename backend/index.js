@@ -1,18 +1,36 @@
-import 'dotenv/config';
-import cors from 'cors';
-import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { isCloudinaryConfigured } from './services/cloudinary.js';
-import authRoutes from './routes/auth.js';
-import flatRoutes from './routes/flats.js';
-import reservationRoutes from './routes/reservations.js';
-import statsRoutes from './routes/stats.js';
-import uploadRoutes from './routes/upload.js';
-import { storage } from './store/storage.js';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import express from 'express';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config();
+
+// Route and storage modules read environment variables at module load time (in
+// particular, auth.js reads JWT_SECRET). Static imports are evaluated before
+// this file's body, so load local modules only after the backend .env has been
+// applied.
+const [
+  { isCloudinaryConfigured },
+  { default: authRoutes },
+  { default: flatRoutes },
+  { default: reservationRoutes },
+  { default: statsRoutes },
+  { default: uploadRoutes },
+  { storage }
+] = await Promise.all([
+  import('./services/cloudinary.js'),
+  import('./routes/auth.js'),
+  import('./routes/flats.js'),
+  import('./routes/reservations.js'),
+  import('./routes/stats.js'),
+  import('./routes/upload.js'),
+  import('./store/storage.js')
+]);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
