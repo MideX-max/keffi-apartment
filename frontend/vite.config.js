@@ -11,15 +11,20 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:5001',
         changeOrigin: true,
+        secure: false,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
             console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('Proxying request:', req.method, req.url, 'to', options.target);
           });
         }
       },
       '/uploads': {
         target: 'http://localhost:5001',
-        changeOrigin: true
+        changeOrigin: true,
+        secure: false
       }
     }
   }
