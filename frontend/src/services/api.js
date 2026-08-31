@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// In development, use Vite's /api proxy (configured to forward to the local
+// backend on port 5001). Production deployments supply VITE_API_URL instead.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const API_ORIGIN = new URL(API_BASE_URL, window.location.origin).origin;
 
 function authHeaders(token) {

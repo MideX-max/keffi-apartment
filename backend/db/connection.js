@@ -27,7 +27,11 @@ export function connectToDatabase() {
       .connect(MONGODB_URI, {
         dbName: process.env.MONGODB_DB_NAME || undefined,
         maxPoolSize: Number(process.env.DB_POOL_SIZE || 10),
-        serverSelectionTimeoutMS: Number(process.env.MONGODB_TIMEOUT_MS || 15000)
+        serverSelectionTimeoutMS: Number(process.env.MONGODB_TIMEOUT_MS || 15000),
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 30000,
+        retryWrites: true,
+        retryReads: true
       })
       .catch(error => {
         connectionPromise = null;
