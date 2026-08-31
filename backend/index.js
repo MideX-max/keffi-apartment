@@ -51,6 +51,11 @@ app.use((req, res, next) => {
 
 app.use(cors({
   origin(origin, callback) {
+    // Allow all origins for development
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    // Otherwise check against specific origins
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
@@ -131,11 +136,12 @@ app.use((err, req, res, next) => {
 async function startServer() {
   await storage.init();
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log('===================================================');
     console.log('  KEFFI APARTMENT SUITES BACKEND API RUNNING');
     console.log(`  Port: http://localhost:${PORT}`);
     console.log(`  API Health: http://localhost:${PORT}/api/health`);
+    console.log('  Accessible from network: http://0.0.0.0:' + PORT);
     console.log('===================================================');
   });
 }
