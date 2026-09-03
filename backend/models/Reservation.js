@@ -13,7 +13,7 @@ const reservationSchema = new mongoose.Schema(
     passId: { type: String, required: true, unique: true },
     guestName: { type: String, required: true },
     email: { type: String, default: '' },
-    phone: { type: String, required: true },
+    phone: { type: String, default: '' },
     guestCount: { type: Number, required: true, default: 1, min: 1 },
     purpose: { type: String, default: 'Apartment Stay' },
     flat: { type: String, required: true },
@@ -53,6 +53,12 @@ const reservationSchema = new mongoose.Schema(
 reservationSchema.pre('validate', async function enforceDateRange() {
   if (this.checkInDate && this.checkOutDate && this.checkOutDate <= this.checkInDate) {
     throw new Error('Check-out date must be strictly after check-in date.');
+  }
+  
+  // For Airbnb bookings, set defaults for required fields
+  if (this.airbnbBooking) {
+    if (!this.flat) this.flat = 'Airbnb Booking';
+    if (!this.phone) this.phone = '';
   }
 });
 

@@ -25,11 +25,10 @@ export const DEFAULT_FLATS = [
 ];
 
 export const ID_TYPES = [
-  "National Identification Number (NIN)",
   "International Passport",
-  "Driver's License",
-  "Voter's Card (INEC)",
-  "Diplomatic / Official ID"
+  "National ID / NIN-related accepted document",
+  "Driver's Licence",
+  "Voter's Card"
 ];
 
 // Helper to format date to DD/MM/YYYY matching physical pass

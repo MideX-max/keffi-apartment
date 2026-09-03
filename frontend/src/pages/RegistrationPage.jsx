@@ -8,17 +8,17 @@ import { ID_TYPES, formatDatePass } from '../utils/constants.js';
 import confetti from 'canvas-confetti';
 import { 
   User, Calendar, ShieldCheck, PenTool, CheckCircle, ArrowRight, 
-  ArrowLeft, Check, Building, Clock, AlertTriangle
+  ArrowLeft, Check, Building, Clock
 } from 'lucide-react';
 
 export default function RegistrationPage() {
   const navigate = useNavigate();
-  const { submitReservation, flats } = useReservations();
+  const { submitReservation } = useReservations();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const [flatConflict, setFlatConflict] = useState(null);
   const [errors, setErrors] = useState({});
+  const [airbnbFlow, setAirbnbFlow] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState(() => ({
@@ -27,7 +27,6 @@ export default function RegistrationPage() {
     phone: '',
     email: '',
     guestCount: 1,
-    purpose: 'Business & Personal Stay',
     airbnbBooking: false,
     airbnbScreenshotUrl: '',
     airbnbScreenshotName: '',
@@ -69,27 +68,15 @@ export default function RegistrationPage() {
     }
   };
 
-  const selectedFlat = flats.find(flat => flat.name === formData.flat) || null;
-
-  // Check flat conflict whenever flat, checkInDate, or checkOutDate change
-  useEffect(() => {
-    async function verifyConflict() {
-      if (!formData.flat || !formData.checkInDate || !formData.checkOutDate) return;
-      if (new Date(formData.checkOutDate) <= new Date(formData.checkInDate)) return;
-
-      try {
-        const res = await api.checkFlatConflict(formData.flat, formData.checkInDate, formData.checkOutDate);
-        if (!res.available) {
-          setFlatConflict(res.message);
-        } else {
-          setFlatConflict(null);
-        }
-      } catch {
-        setFlatConflict(null);
-      }
+  // Handle Airbnb flow activation
+  const handleAirbnbChange = (isAirbnb) => {
+    handleChange('airbnbBooking', isAirbnb);
+    setAirbnbFlow(isAirbnb);
+    if (isAirbnb) {
+      // For Airbnb, set minimal required fields
+      handleChange('guestCount', 1);
     }
-    verifyConflict();
-  }, [formData.flat, formData.checkInDate, formData.checkOutDate]);
+  };
 
   // Step Validation
   const validateStep = (step) => {
@@ -97,7 +84,6 @@ export default function RegistrationPage() {
 
     if (step === 1) {
       if (!formData.guestName.trim()) newErrors.guestName = 'Full guest name is required.';
-      if (!formData.phone.trim()) newErrors.phone = 'Phone number is required for security verification.';
       if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         newErrors.email = 'Please enter a valid email address.';
       }
@@ -106,33 +92,36 @@ export default function RegistrationPage() {
       }
     }
 
-    if (step === 2) {
-      if (!formData.flat.trim()) newErrors.flat = 'Please select a flat/suite.';
-      if (!formData.checkInDate) newErrors.checkInDate = 'Check-in date is required.';
-      if (!formData.checkOutDate) newErrors.checkOutDate = 'Check-out date is required.';
-      if (formData.checkInDate && formData.checkOutDate && new Date(formData.checkOutDate) <= new Date(formData.checkInDate)) {
-        newErrors.checkOutDate = 'Check-out date must be after check-in date.';
+    // Skip steps 2-4 for Airbnb flow
+    if (!airbnbFlow) {
+      if (step === 2) {
+        if (!formData.flat.trim()) newErrors.flat = 'Please enter the flat/apartment name.';
+        if (!formData.checkInDate) newErrors.checkInDate = 'Check-in date is required.';
+        if (!formData.checkOutDate) newErrors.checkOutDate = 'Check-out date is required.';
+        if (formData.checkInDate && formData.checkOutDate && new Date(formData.checkOutDate) <= new Date(formData.checkInDate)) {
+          newErrors.checkOutDate = 'Check-out date must be after check-in date.';
+        }
       }
-      if (flatConflict) {
-        newErrors.flat = flatConflict;
-      }
-    }
 
-    if (step === 3) {
-      if (!formData.idDocumentUrl) {
-        newErrors.idDocumentUrl = 'Identification document upload is required.';
+      if (step === 3) {
+        if (!formData.idDocumentUrl) {
+          newErrors.idDocumentUrl = 'Identification document upload is required.';
+        }
+        if (!formData.idNumber.trim()) {
+          newErrors.idNumber = 'Identification number is required.';
+        }
       }
-    }
 
-    if (step === 4) {
-      if (!formData.signatureUrl && !formData.signatureUploadUrl) {
-        newErrors.signatureUrl = 'Please provide a signature (draw or upload).';
+      if (step === 4) {
+        if (!formData.signatureUrl && !formData.signatureUploadUrl) {
+          newErrors.signatureUrl = 'Please provide a signature (draw or upload).';
+        }
       }
-    }
 
-    if (step === 5) {
-      if (!formData.confirmedAccuracy) {
-        newErrors.confirmedAccuracy = 'You must confirm the accuracy of the submitted information.';
+      if (step === 5) {
+        if (!formData.confirmedAccuracy) {
+          newErrors.confirmedAccuracy = 'You must confirm the accuracy of the submitted information.';
+        }
       }
     }
 
@@ -142,6 +131,11 @@ export default function RegistrationPage() {
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
+      // For Airbnb flow: skip directly to submission after document upload
+      if (airbnbFlow && currentStep === 1 && formData.airbnbScreenshotUrl) {
+        handleSubmit(new Event('submit'));
+        return;
+      }
       setCurrentStep(prev => Math.min(prev + 1, 5));
       window.scrollTo({ top: 120, behavior: 'smooth' });
     }
@@ -154,11 +148,37 @@ export default function RegistrationPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateStep(5)) return;
+    
+    // For Airbnb flow, only validate step 1
+    if (airbnbFlow) {
+      if (!validateStep(1)) return;
+    } else {
+      if (!validateStep(5)) return;
+    }
 
     setSubmitting(true);
     try {
-      const created = await submitReservation(formData);
+      // For Airbnb, send minimal data - backend will process document
+      const submissionData = airbnbFlow ? {
+        guestName: formData.guestName,
+        airbnbBooking: true,
+        airbnbScreenshotUrl: formData.airbnbScreenshotUrl,
+        airbnbScreenshotName: formData.airbnbScreenshotName,
+        airbnbScreenshotPublicId: formData.airbnbScreenshotPublicId,
+        airbnbScreenshotResourceType: formData.airbnbScreenshotResourceType,
+        guestCount: 1,
+        phone: formData.phone || '',
+        email: formData.email || '',
+        flat: 'Airbnb Booking',
+        checkInDate: new Date().toISOString().slice(0, 10),
+        checkOutDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        idType: 'Airbnb Verified',
+        idNumber: 'Airbnb Verified',
+        signatureUrl: '',
+        confirmedAccuracy: true
+      } : formData;
+
+      const created = await submitReservation(submissionData);
       
       // Trigger festive confetti
       try {
@@ -189,13 +209,19 @@ export default function RegistrationPage() {
     return nights > 0 ? nights : 0;
   };
 
-  const steps = [
+  const normalSteps = [
     { num: 1, title: 'Guest Details', icon: User },
     { num: 2, title: 'Reservation', icon: Calendar },
     { num: 3, title: 'Identification', icon: ShieldCheck },
     { num: 4, title: 'Signature', icon: PenTool },
     { num: 5, title: 'Review', icon: CheckCircle }
   ];
+
+  const airbnbSteps = [
+    { num: 1, title: 'Airbnb Document', icon: User }
+  ];
+
+  const steps = airbnbFlow ? airbnbSteps : normalSteps;
 
   return (
     <div style={{ backgroundColor: 'var(--bg-surface)', minHeight: '100vh', padding: '3.5rem 0 5rem' }}>
@@ -272,65 +298,54 @@ export default function RegistrationPage() {
                   {errors.guestName && <span className="form-error">{errors.guestName}</span>}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">
-                      Phone Number <span className="required">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      className={`form-input ${errors.phone ? 'error' : ''}`}
-                      placeholder="+234 803 123 4567"
-                      value={formData.phone}
-                      onChange={(e) => handleChange('phone', e.target.value)}
-                    />
-                    {errors.phone && <span className="form-error">{errors.phone}</span>}
-                  </div>
+                {!airbnbFlow && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
+                      <div className="form-group">
+                        <label className="form-label">
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          className={`form-input ${errors.phone ? 'error' : ''}`}
+                          placeholder="+234 803 123 4567"
+                          value={formData.phone}
+                          onChange={(e) => handleChange('phone', e.target.value)}
+                        />
+                        {errors.phone && <span className="form-error">{errors.phone}</span>}
+                      </div>
 
-                  <div className="form-group">
-                    <label className="form-label">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      className={`form-input ${errors.email ? 'error' : ''}`}
-                      placeholder="guest@example.com"
-                      value={formData.email}
-                      onChange={(e) => handleChange('email', e.target.value)}
-                    />
-                    {errors.email && <span className="form-error">{errors.email}</span>}
-                  </div>
-                </div>
+                      <div className="form-group">
+                        <label className="form-label">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          className={`form-input ${errors.email ? 'error' : ''}`}
+                          placeholder="guest@example.com"
+                          value={formData.email}
+                          onChange={(e) => handleChange('email', e.target.value)}
+                        />
+                        {errors.email && <span className="form-error">{errors.email}</span>}
+                      </div>
+                    </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">
-                      Number of Guests in Party (Optional)
-                    </label>
-                    <select
-                      className="form-select"
-                      value={formData.guestCount}
-                      onChange={(e) => handleChange('guestCount', parseInt(e.target.value, 10))}
-                    >
-                      {[1, 2, 3, 4, 5, 6, 8, 10].map(n => (
-                        <option key={n} value={n}>{n} {n === 1 ? 'Guest (Solo)' : 'Guests'}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">
-                      Purpose of Visit
-                    </label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. Business, Vacation, Short Stay"
-                      value={formData.purpose}
-                      onChange={(e) => handleChange('purpose', e.target.value)}
-                    />
-                  </div>
-                </div>
+                    <div className="form-group">
+                      <label className="form-label">
+                        Number of Guests
+                      </label>
+                      <select
+                        className="form-select"
+                        value={formData.guestCount}
+                        onChange={(e) => handleChange('guestCount', parseInt(e.target.value, 10))}
+                      >
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <option key={n} value={n}>{n} {n === 1 ? 'Guest' : 'Guests'}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
 
                 {/* Airbnb Booking Check */}
                 <div style={{ marginTop: '1.5rem', padding: '1.25rem', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 'var(--radius-md)' }}>
@@ -338,7 +353,7 @@ export default function RegistrationPage() {
                     <input
                       type="checkbox"
                       checked={formData.airbnbBooking}
-                      onChange={(e) => handleChange('airbnbBooking', e.target.checked)}
+                      onChange={(e) => handleAirbnbChange(e.target.checked)}
                       className="kas-checkbox"
                       style={{ accentColor: 'var(--brand-black)' }}
                     />
@@ -346,6 +361,12 @@ export default function RegistrationPage() {
                       Did you book through Airbnb?
                     </span>
                   </label>
+                  
+                  {formData.airbnbBooking && (
+                    <p style={{ fontSize: '0.8rem', color: '#0369a1', marginTop: '0.5rem', lineHeight: '1.4' }}>
+                      If you booked through Airbnb, simply upload your booking document and we'll generate your pass automatically. No need to fill out the full registration form.
+                    </p>
+                  )}
                   
                   {formData.airbnbBooking && (
                     <div style={{ marginTop: '1rem' }}>
@@ -367,6 +388,17 @@ export default function RegistrationPage() {
                         accept="image/*"
                       />
                       {errors.airbnbScreenshotUrl && <span className="form-error" style={{ display: 'block', marginTop: '0.5rem' }}>{errors.airbnbScreenshotUrl}</span>}
+                      
+                      {formData.airbnbScreenshotUrl && (
+                        <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 'var(--radius-md)' }}>
+                          <p style={{ fontSize: '0.875rem', color: '#166534', marginBottom: '0.5rem' }}>
+                            <strong>Airbnb document uploaded successfully!</strong>
+                          </p>
+                          <p style={{ fontSize: '0.8rem', color: '#15803d' }}>
+                            Click "Continue" to generate your pass from the Airbnb booking information.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -385,48 +417,24 @@ export default function RegistrationPage() {
                       Section 2: Apartment &amp; Stay Duration
                     </h2>
                     <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                      Select the flat/apartment suite. Two guests cannot have the same flat during the same dates.
+                      Enter the flat/apartment name and stay dates.
                     </span>
                   </div>
                 </div>
 
-                {/* Flat selector, populated from the flats the backend actually knows about */}
+                {/* Flat / Apartment Name - Manual Entry */}
                 <div className="form-group">
                   <label className="form-label">
                     Flat / Apartment Name <span className="required">*</span>
                   </label>
-                  <select
-                    className={`form-select ${errors.flat || flatConflict ? 'error' : ''}`}
+                  <input
+                    type="text"
+                    className={`form-input ${errors.flat ? 'error' : ''}`}
+                    placeholder="e.g. Azalea C1"
                     value={formData.flat}
                     onChange={(e) => handleChange('flat', e.target.value)}
-                    disabled={flats.length === 0}
-                  >
-                    <option value="">
-                      {flats.length === 0 ? 'Loading available suites…' : 'Select a suite…'}
-                    </option>
-                    {flats.map(flat => (
-                      <option key={flat.id} value={flat.name}>
-                        {flat.name}
-                        {flat.type ? ` — ${flat.type}` : ''}
-                        {flat.status === 'occupied' ? ' (currently occupied)' : ''}
-                      </option>
-                    ))}
-                  </select>
-
-                  {selectedFlat && (
-                    <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {[selectedFlat.block, selectedFlat.floor].filter(Boolean).join(' • ')}
-                      {selectedFlat.description ? ` — ${selectedFlat.description}` : ''}
-                    </div>
-                  )}
-
-                  {flatConflict && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#dc2626', fontSize: '0.8125rem', marginTop: '0.4rem', fontWeight: 600 }}>
-                      <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-                      <span>{flatConflict}</span>
-                    </div>
-                  )}
-                  {errors.flat && !flatConflict && <span className="form-error">{errors.flat}</span>}
+                  />
+                  {errors.flat && <span className="form-error">{errors.flat}</span>}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.25rem' }}>
@@ -483,10 +491,10 @@ export default function RegistrationPage() {
                   </div>
                 </div>
 
-                {/* Stay Summary & Availability Check Pill */}
+                {/* Stay Summary */}
                 <div style={{ 
-                  backgroundColor: flatConflict ? '#fef2f2' : 'var(--brand-gold-light)', 
-                  border: `1px solid ${flatConflict ? '#fecaca' : 'var(--brand-gold-border)'}`, 
+                  backgroundColor: 'var(--brand-gold-light)', 
+                  border: '1px solid var(--brand-gold-border)', 
                   borderRadius: 'var(--radius-md)', 
                   padding: '1rem 1.25rem', 
                   display: 'flex', 
@@ -496,13 +504,13 @@ export default function RegistrationPage() {
                   gap: '0.75rem'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <Clock size={18} color={flatConflict ? '#dc2626' : 'var(--brand-gold-dark)'} />
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: flatConflict ? '#991b1b' : 'var(--brand-black)' }}>
+                    <Clock size={18} color="var(--brand-gold-dark)" />
+                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--brand-black)' }}>
                       Total Stay: <strong>{calculateNights()} Night(s)</strong> in <strong>{formData.flat || 'Apartment'}</strong>
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.8125rem', color: flatConflict ? '#dc2626' : 'var(--brand-gold-dark)', fontWeight: 700 }}>
-                    {flatConflict ? '❌ Apartment Unavailable on these dates' : '✅ Apartment Available'}
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--brand-gold-dark)', fontWeight: 700 }}>
+                    ✅ Ready to Proceed
                   </span>
                 </div>
               </div>
@@ -543,15 +551,16 @@ export default function RegistrationPage() {
 
                   <div className="form-group">
                     <label className="form-label">
-                      ID Document / Slip Number
+                      ID Document / Slip Number <span className="required">*</span>
                     </label>
                     <input
                       type="text"
-                      className="form-input"
+                      className={`form-input ${errors.idNumber ? 'error' : ''}`}
                       placeholder="e.g. NIN-89304928114 or Passport No."
                       value={formData.idNumber}
                       onChange={(e) => handleChange('idNumber', e.target.value)}
                     />
+                    {errors.idNumber && <span className="form-error">{errors.idNumber}</span>}
                   </div>
                 </div>
 
@@ -689,19 +698,19 @@ export default function RegistrationPage() {
                     <p style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--brand-black)', marginBottom: '0.35rem' }}>
                       {formData.guestName}
                     </p>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)' }}>
-                      Phone: <strong>{formData.phone}</strong>
-                    </p>
+                    {formData.phone && (
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)' }}>
+                        Phone: <strong>{formData.phone}</strong>
+                      </p>
+                    )}
                     {formData.email && (
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)' }}>
                         Email: <strong>{formData.email}</strong>
                       </p>
                     )}
-                    {formData.guestCount > 1 && (
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)' }}>
-                        Party: <strong>{formData.guestCount} Guest(s)</strong>
-                      </p>
-                    )}
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-sub)' }}>
+                      Party: <strong>{formData.guestCount} Guest(s)</strong>
+                    </p>
                   </div>
 
                   {/* Stay Info */}
@@ -801,10 +810,9 @@ export default function RegistrationPage() {
                 <button
                   type="button"
                   onClick={nextStep}
-                  disabled={Boolean(currentStep === 2 && flatConflict)}
                   className="btn btn-primary btn-lg"
                 >
-                  Continue to Next Step
+                  {airbnbFlow && currentStep === 1 ? 'Generate Pass from Airbnb Document' : 'Continue to Next Step'}
                   <ArrowRight size={18} />
                 </button>
               ) : (

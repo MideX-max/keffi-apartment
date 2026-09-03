@@ -103,7 +103,6 @@ export function ReservationProvider({ children }) {
     setLoading(true);
     try {
       const res = await api.createReservation(payload);
-      await fetchFlats();
       if (isAuthenticated) {
         await fetchReservations();
       }

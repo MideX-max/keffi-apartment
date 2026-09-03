@@ -513,34 +513,60 @@ class StorageEngine {
   async createReservation(payload) {
     const guestName = cleanString(payload.guestName);
     const flat = cleanString(payload.flat);
-    const phone = cleanString(payload.phone);
+    const phone = cleanString(payload.phone) || '';
     const checkInDate = toDateOnly(payload.checkInDate);
     const checkOutDate = toDateOnly(payload.checkOutDate);
+    const isAirbnb = Boolean(payload.airbnbBooking);
 
-    if (!guestName || !flat || !phone || !checkInDate || !checkOutDate) {
-      throw new Error('Full Name, Phone Number, Flat, Check-in Date, and Check-out Date are required.');
+    // For Airbnb bookings, only require guest name and Airbnb document
+    if (isAirbnb) {
+      if (!guestName) {
+        throw new Error('Guest Name is required for Airbnb bookings.');
+      }
+      if (!cleanString(payload.airbnbScreenshotUrl)) {
+        throw new Error('Airbnb booking document is required.');
+      }
+    } else {
+      // Normal registration requirements
+      if (!guestName || !flat || !phone || !checkInDate || !checkOutDate) {
+        throw new Error('Full Name, Phone Number, Flat, Check-in Date, and Check-out Date are required.');
+      }
     }
 
     validateDateRange(checkInDate, checkOutDate);
 
-    const conflict = await this.checkFlatConflict(flat, checkInDate, checkOutDate);
-    if (conflict) {
-      throw new Error(`Flat "${flat}" is already booked for those dates.`);
+    // Only check flat conflict and assert flat exists for non-Airbnb bookings
+    if (!isAirbnb) {
+      const conflict = await this.checkFlatConflict(flat, checkInDate, checkOutDate);
+      if (conflict) {
+        throw new Error(`Flat "${flat}" is already booked for those dates.`);
+      }
+      await this.assertFlatExists(flat);
     }
 
-    await this.assertFlatExists(flat);
-
     const admin = await this.getAdmin();
+
+    // For Airbnb bookings, use Airbnb screenshot as ID document
+    if (isAirbnb && cleanString(payload.airbnbScreenshotUrl)) {
+      payload.idDocumentUrl = payload.airbnbScreenshotUrl;
+      payload.idDocumentPublicId = payload.airbnbScreenshotPublicId;
+      payload.idDocumentResourceType = payload.airbnbScreenshotResourceType;
+      payload.idDocumentName = payload.airbnbScreenshotName;
+    }
 
     // Push any inline data: URIs (drawn signatures) up to Cloudinary first, so
     // what lands in the database is always a hosted URL plus its public id.
     const { fields: media } = await this.resolveReservationMedia(payload, null);
 
-    const hasIdentity = Boolean(cleanString(media.idDocumentUrl) || cleanString(payload.idNumber));
+    // For Airbnb, the Airbnb document serves as identity verification
+    const hasIdentity = isAirbnb 
+      ? Boolean(cleanString(payload.airbnbScreenshotUrl))
+      : Boolean(cleanString(media.idDocumentUrl) || cleanString(payload.idNumber));
+    
     const hasSignature = Boolean(cleanString(media.signatureUrl));
-    const autoApproved = hasIdentity && hasSignature;
+    const autoApproved = isAirbnb ? hasIdentity : (hasIdentity && hasSignature);
     const verificationNotes = autoApproved
-      ? 'Automated validation passed all checks.'
+      ? (isAirbnb ? 'Airbnb booking verified and automatically approved.' : 'Automated validation passed all checks.')
       : 'Flagged: identity document/number and guest signature are required before approval.';
 
     const created = await Reservation.create({
@@ -548,18 +574,18 @@ class StorageEngine {
       passId: payload.passId || generatePassId(),
       guestName,
       email: cleanString(payload.email),
-      phone,
+      phone: phone || '', // Allow empty phone for Airbnb
       guestCount: Math.max(1, Number.parseInt(payload.guestCount, 10) || 1),
-      purpose: cleanString(payload.purpose, 'Apartment Stay'),
+      purpose: cleanString(payload.purpose, isAirbnb ? 'Airbnb Stay' : 'Apartment Stay'),
       flat,
       checkInDate,
       checkOutDate,
       checkInTime: toTimeOnly(payload.checkInTime, '14:00'),
       checkOutTime: toTimeOnly(payload.checkOutTime, '11:00'),
-      idType: cleanString(payload.idType, 'National Identification Number (NIN)'),
-      idNumber: cleanString(payload.idNumber),
+      idType: cleanString(payload.idType, isAirbnb ? 'Airbnb Verified' : 'National Identification Number (NIN)'),
+      idNumber: cleanString(payload.idNumber) || (isAirbnb ? 'Airbnb Verified' : ''),
       idDocumentName: cleanString(payload.idDocumentName),
-      airbnbBooking: Boolean(payload.airbnbBooking),
+      airbnbBooking: isAirbnb,
       airbnbScreenshotName: cleanString(payload.airbnbScreenshotName),
       ...media,
       managerSignatureUrl: admin?.defaultSignature || DEFAULT_MANAGER_SIGNATURE,

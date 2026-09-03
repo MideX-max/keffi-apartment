@@ -45,10 +45,35 @@ router.get('/:passId', asyncHandler(async (req, res) => {
 router.post('/', authenticateGuestToken, submissionLimiter, asyncHandler(async (req, res) => {
   const payload = req.body;
 
-  if (!payload.guestName || !payload.flat || !payload.phone || !payload.checkInDate || !payload.checkOutDate) {
-    return res.status(400).json({
-      message: 'Required fields missing: Full Name, Phone Number, Flat, Check-in Date, and Check-out Date are mandatory.'
-    });
+  // For Airbnb bookings, only require guest name and Airbnb document
+  if (payload.airbnbBooking) {
+    if (!payload.guestName || !payload.airbnbScreenshotUrl) {
+      return res.status(400).json({
+        message: 'For Airbnb bookings: Guest Name and Airbnb booking document are required.'
+      });
+    }
+    // Set defaults for Airbnb bookings
+    payload.flat = payload.flat || 'Airbnb Booking';
+    payload.checkInDate = payload.checkInDate || new Date().toISOString().slice(0, 10);
+    payload.checkOutDate = payload.checkOutDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    payload.guestCount = payload.guestCount || 1;
+    payload.phone = payload.phone || '';
+    payload.email = payload.email || '';
+    payload.idType = payload.idType || 'Airbnb Verified';
+    payload.idNumber = payload.idNumber || 'Airbnb Verified';
+    payload.idDocumentUrl = payload.airbnbScreenshotUrl;
+    payload.idDocumentName = payload.airbnbScreenshotName;
+    payload.idDocumentPublicId = payload.airbnbScreenshotPublicId;
+    payload.idDocumentResourceType = payload.airbnbScreenshotResourceType;
+    payload.signatureUrl = ''; // Will use default manager signature
+    payload.purpose = 'Airbnb Stay';
+  } else {
+    // Normal registration requirements
+    if (!payload.guestName || !payload.flat || !payload.checkInDate || !payload.checkOutDate) {
+      return res.status(400).json({
+        message: 'Required fields missing: Full Name, Flat, Check-in Date, and Check-out Date are mandatory.'
+      });
+    }
   }
 
   try {

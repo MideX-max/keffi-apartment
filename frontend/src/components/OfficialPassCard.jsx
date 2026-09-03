@@ -146,11 +146,11 @@ const OfficialPassCard = forwardRef(function OfficialPassCard({ reservation, cla
         </div>
 
         {/* Signatures Section */}
-        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'row', gap: '2rem', alignItems: 'flex-start' }}>
           
           {/* Guest / Flat Owner Signature */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            <span style={{ fontWeight: 800, fontSize: '0.95rem', textTransform: 'uppercase', color: '#000000', letterSpacing: '0.02em' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <span style={{ fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', color: '#000000', letterSpacing: '0.02em' }}>
               FLAT OWNERS/REPRESENTATIVE’S SIGNATURE :
             </span>
             <div style={{
@@ -177,11 +177,18 @@ const OfficialPassCard = forwardRef(function OfficialPassCard({ reservation, cla
           </div>
 
           {/* Facility Manager's Signature */}
-          <div className="pass-sig-row" style={{ fontSize: '1.05rem' }}>
-            <span className="pass-sig-caption">
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <span style={{ fontWeight: 800, fontSize: '0.85rem', textTransform: 'uppercase', color: '#000000', letterSpacing: '0.02em' }}>
               FACILITY MANAGER’S SIGNATURE:
             </span>
-            <div className="pass-sig-slot" style={{ marginLeft: '0.5rem', minHeight: '65px' }}>
+            <div style={{
+              borderBottom: '2px dotted #444444',
+              minHeight: '65px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative'
+            }}>
               <img
                 src={managerSignatureUrl || DEFAULT_MANAGER_SIG}
                 alt="Facility Manager Signature"
